@@ -130,4 +130,25 @@ class StorefrontTest extends FeatureTestCase
 
         $this->get('/')->assertOk()->assertSee('Cache Invalidation GPU');
     }
+
+    public function test_product_page_renders_structured_specifications(): void
+    {
+        $product = $this->makeProduct('Spec Tower', 'spec-tower', 5);
+        $product->update(['specs' => ['Socket' => 'LGA1700', 'TDP' => '65W']]);
+
+        $this->get(route('products.show', $product->slug))
+            ->assertOk()
+            ->assertSee('Specifications')
+            ->assertSee('LGA1700')
+            ->assertSee('65W');
+    }
+
+    public function test_product_page_hides_specifications_when_absent(): void
+    {
+        $product = $this->makeProduct('Plain Mouse', 'plain-mouse', 5);
+
+        $this->get(route('products.show', $product->slug))
+            ->assertOk()
+            ->assertDontSee('Specifications');
+    }
 }

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Products\Schemas;
 
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -56,6 +57,13 @@ class ProductForm
                         Textarea::make('seo_description')
                             ->rows(4)
                             ->columnSpanFull(),
+                        KeyValue::make('specs')
+                            ->label('Specifications')
+                            ->keyLabel('Spec')
+                            ->valueLabel('Details')
+                            ->reorderable()
+                            ->columnSpanFull()
+                            ->helperText('Optional hardware attributes shown as a table on the product page (e.g. Socket → LGA1700).'),
                     ]),
             ]);
     }
