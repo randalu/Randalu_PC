@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\Setting;
-use App\Support\SriLankanPhone;
 
 class OrderOtpService
 {
@@ -64,10 +63,10 @@ class OrderOtpService
 
     private function hasOrdersForPhone(string $phone): bool
     {
+        // Exact SQL match on the normalized E.164 copy (indexed); replaces the
+        // old "load latest 250 orders and compare in PHP" scan (review L3).
         return Order::query()
-            ->latest()
-            ->limit(250)
-            ->get(['customer_phone'])
-            ->contains(fn (Order $order): bool => SriLankanPhone::same($order->customer_phone, $phone));
+            ->where('customer_phone_normalized', $phone)
+            ->exists();
     }
 }

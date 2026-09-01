@@ -31,6 +31,23 @@ class SriLankanPhoneTest extends TestCase
         $this->assertNull(SriLankanPhone::normalize(null));
     }
 
+    public function test_rejects_landlines_and_non_mobile_ranges(): void
+    {
+        // Colombo / Kandy area-code landlines cannot receive SMS OTPs.
+        $this->assertNull(SriLankanPhone::normalize('0112345678'));
+        $this->assertNull(SriLankanPhone::normalize('0812345678'));
+        $this->assertNull(SriLankanPhone::normalize('+94112345678'));
+        $this->assertNull(SriLankanPhone::normalize('0381234567'));
+    }
+
+    public function test_accepts_all_07x_mobile_ranges(): void
+    {
+        $this->assertSame('+94701234567', SriLankanPhone::normalize('0701234567'));
+        $this->assertSame('+94711234567', SriLankanPhone::normalize('071 123 4567'));
+        $this->assertSame('+94741234567', SriLankanPhone::normalize('+94741234567'));
+        $this->assertSame('+94781234567', SriLankanPhone::normalize('781234567'));
+    }
+
     public function test_same_compares_normalized_numbers(): void
     {
         $this->assertTrue(SriLankanPhone::same('0771234567', '+94 77 123 4567'));

@@ -8,6 +8,8 @@ use App\Models\ProductVariant;
 use App\Models\Setting;
 use App\Services\CartService;
 use App\Services\EventLogger;
+use App\Support\SriLankanPhone;
+use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -48,7 +50,11 @@ class CheckoutController extends Controller
 
         $data = $request->validate([
             'customer_name' => ['required', 'string', 'max:120'],
-            'customer_phone' => ['required', 'string', 'max:40'],
+            'customer_phone' => ['required', 'string', 'max:40', function (string $attribute, mixed $value, Closure $fail): void {
+                if (SriLankanPhone::normalize(is_string($value) ? $value : null) === null) {
+                    $fail('Enter a valid Sri Lankan mobile number (e.g. 0771234567).');
+                }
+            }],
             'customer_email' => ['nullable', 'email', 'max:160'],
             'delivery_address' => ['required', 'string', 'max:1000'],
             'customer_notes' => ['nullable', 'string', 'max:1000'],
@@ -139,7 +145,7 @@ class CheckoutController extends Controller
     private function orderNumber(): string
     {
         do {
-            $number = 'RPC-'.now()->format('Ymd').'-'.str_pad((string) random_int(1, 9999), 4, '0', STR_PAD_LEFT);
+            $number = 'RPC-'.now()->format('Ymd').'-'.str_pad((string) random_int(0, 99999), 5, '0', STR_PAD_LEFT);
         } while (Order::query()->where('order_number', $number)->exists());
 
         return $number;

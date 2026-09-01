@@ -339,4 +339,32 @@ class OrderStatusTest extends FeatureTestCase
             'customer_phone' => '+94771234567',
         ]);
     }
+
+    public function test_phone_lookups_use_the_normalized_e164_column(): void
+    {
+        $this->seed();
+
+        // Order stored with a non-standard display format for the same number.
+        $order = $this->placeOrder('Format Mix Customer', '94 77 123 4567');
+
+        $this->assertSame('+94771234567', $order->customer_phone_normalized);
+
+        $this->withSession(['order_status_phone' => '+94771234567'])
+            ->get(route('orders.status'))
+            ->assertOk()
+            ->assertSee($order->order_number)
+            ->assertSee('Format Mix Customer');
+    }
+
+    public function test_phone_edits_resync_the_normalized_column(): void
+    {
+        $this->seed();
+        $order = $this->placeOrder('Resync Customer', '0771234567');
+
+        $this->assertSame('+94771234567', $order->customer_phone_normalized);
+
+        $order->update(['customer_phone' => '0761234567']);
+
+        $this->assertSame('+94761234567', $order->refresh()->customer_phone_normalized);
+    }
 }

@@ -54,6 +54,22 @@ class CheckoutTest extends FeatureTestCase
         $this->assertDatabaseMissing('orders', ['customer_phone' => '0771234567']);
     }
 
+    public function test_checkout_rejects_non_mobile_phone_numbers(): void
+    {
+        $this->seed();
+        $variant = ProductVariant::query()->firstOrFail();
+
+        $this->post('/cart', ['variant_id' => $variant->id, 'quantity' => 1])->assertRedirect('/cart');
+
+        $this->post('/checkout', [
+            'customer_name' => 'Landline Customer',
+            'customer_phone' => '0112345678',
+            'delivery_address' => 'Colombo',
+        ])->assertSessionHasErrors('customer_phone');
+
+        $this->assertDatabaseMissing('orders', ['customer_name' => 'Landline Customer']);
+    }
+
     public function test_checkout_links_order_to_logged_in_customer(): void
     {
         $this->seed();

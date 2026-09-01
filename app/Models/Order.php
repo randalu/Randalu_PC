@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\SriLankanPhone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -28,6 +29,7 @@ class Order extends Model
         'customer_id',
         'customer_name',
         'customer_phone',
+        'customer_phone_normalized',
         'customer_email',
         'delivery_address',
         'customer_notes',
@@ -50,6 +52,17 @@ class Order extends Model
             'total' => 'decimal:2',
             'confirmed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Keep the searchable E.164 copy of the phone in sync on every write
+     * (checkout, admin edits, imports) so phone lookups can run in SQL.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Order $order): void {
+            $order->customer_phone_normalized = SriLankanPhone::normalize($order->customer_phone);
+        });
     }
 
     public function customer(): BelongsTo
