@@ -28,3 +28,7 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 desktop.ini
+
+# Agent tooling memory files (review L12)
+.Jules/
+.jules/

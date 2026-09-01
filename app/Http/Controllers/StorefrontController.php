@@ -62,7 +62,7 @@ class StorefrontController extends Controller
         );
 
         $paginated = $this->paginate($products, 12, $request);
-        // ⚡ Bolt: Prevent N+1 queries when accessing $product->category in the view
+        // Prevent N+1 queries when accessing $product->category in the view
         // by injecting the already loaded parent category model.
         $paginated->getCollection()->each->setRelation('category', $category);
 

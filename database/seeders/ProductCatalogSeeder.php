@@ -63,6 +63,31 @@ class ProductCatalogSeeder extends Seeder
             'RPC-PER-03' => 'images/products/rpc-per-03.jpg',
         ];
 
+        // Hardware specification tables, keyed by SKU, rendered on the product page (P4).
+        $productSpecs = [
+            'RPC-LAP-01' => ['Display' => '15.6" FHD IPS', 'Battery' => '56Wh', 'Weight' => '1.6 kg', 'Warranty' => '2 Years'],
+            'RPC-LAP-02' => ['Display' => '14" FHD IPS', 'Battery' => '60Wh', 'Weight' => '1.1 kg', 'Warranty' => '2 Years'],
+            'RPC-DSK-01' => ['Chipset' => 'Intel B760', 'Power Supply' => '650W 80+ Bronze', 'Case' => 'Mid Tower', 'Warranty' => '3 Years'],
+            'RPC-DSK-02' => ['Form Factor' => 'Mini PC', 'Power' => '90W external adapter', 'Warranty' => '1 Year'],
+            'RPC-CPU-01' => ['Socket' => 'LGA1700', 'Cores / Threads' => '10 (6P+4E) / 16', 'TDP' => '65W', 'Included Cooler' => 'Yes'],
+            'RPC-CPU-02' => ['Socket' => 'AM5', 'Cores / Threads' => '8 / 16', 'L3 Cache' => '96MB 3D V-Cache', 'TDP' => '120W'],
+            'RPC-MBD-01' => ['Socket' => 'LGA1700', 'Memory' => '4x DDR5 DIMM', 'Form Factor' => 'ATX'],
+            'RPC-MBD-02' => ['Socket' => 'AM5', 'Memory' => '4x DDR5 DIMM', 'Form Factor' => 'Micro-ATX'],
+            'RPC-GPU-01' => ['VRAM' => '8GB GDDR6', 'Length' => '240mm', 'TGP' => '115W'],
+            'RPC-GPU-02' => ['VRAM' => '16GB GDDR6', 'Length' => '287mm', 'TGP' => '263W'],
+            'RPC-RAM-01' => ['Capacity' => '16GB (2x8GB)', 'Speed' => 'DDR5-5600', 'CAS Latency' => 'CL46'],
+            'RPC-RAM-02' => ['Capacity' => '32GB (2x16GB)', 'Speed' => 'DDR5-6000', 'CAS Latency' => 'CL30'],
+            'RPC-SSD-01' => ['Capacity' => '1TB', 'Interface' => 'PCIe Gen4 x4 NVMe', 'Form Factor' => 'M.2 2280', 'Sequential Read' => 'Up to 7100MB/s'],
+            'RPC-SSD-02' => ['Capacity' => '2TB', 'Interface' => 'SATA III 6Gb/s', 'Form Factor' => '2.5-inch'],
+            'RPC-PSU-01' => ['Wattage' => '650W', 'Efficiency' => '80+ Bronze', 'Modularity' => 'Semi-modular'],
+            'RPC-PSU-02' => ['Wattage' => '850W', 'Efficiency' => '80+ Gold', 'Modularity' => 'Fully modular'],
+            'RPC-MON-01' => ['Panel' => 'IPS', 'Resolution' => '1920x1080', 'Refresh Rate' => '100Hz'],
+            'RPC-MON-02' => ['Panel' => 'IPS', 'Resolution' => '2560x1440', 'Refresh Rate' => '165Hz'],
+            'RPC-PER-01' => ['Switch Type' => 'Blue (clicky)', 'Backlight' => 'RGB', 'Connection' => 'Wired USB'],
+            'RPC-PER-02' => ['Sensor' => 'Optical, 26000 DPI', 'Connection' => '2.4GHz wireless', 'Battery' => 'Up to 120h'],
+            'RPC-PER-03' => ['Audio' => '7.1 virtual surround', 'Connection' => 'USB', 'Microphone' => 'Detachable'],
+        ];
+
         // Each product maps to its variants: option spec => price (LKR).
         $products = [
             ['Laptops & Notebooks', 'RPC-LAP-01', 'Vortex 15 Business Laptop', [
@@ -142,6 +167,7 @@ class ProductCatalogSeeder extends Seeder
                 'slug' => Str::slug($sku.' '.$name),
                 'image_path' => $productImages[$sku],
                 'seo_description' => "{$name} — genuine computer hardware from Randalu PC in Sri Lanka.",
+                'specs' => $productSpecs[$sku] ?? null,
                 'sort_order' => $productSort++,
                 'is_active' => true,
             ]);

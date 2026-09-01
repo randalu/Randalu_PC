@@ -4,6 +4,11 @@ namespace App\Support;
 
 class SriLankanPhone
 {
+    /**
+     * Normalize a Sri Lankan MOBILE number to E.164 (+947XXXXXXXX).
+     * Landlines and anything else unrecognisable return null (review L4):
+     * SMS OTP only reaches 07x mobile ranges.
+     */
     public static function normalize(?string $phone): ?string
     {
         if ($phone === null) {
@@ -16,11 +21,11 @@ class SriLankanPhone
             return null;
         }
 
-        if (str_starts_with($digits, '94') && strlen($digits) === 11) {
+        if (str_starts_with($digits, '947') && strlen($digits) === 11) {
             return '+'.$digits;
         }
 
-        if (str_starts_with($digits, '0') && strlen($digits) === 10) {
+        if (str_starts_with($digits, '07') && strlen($digits) === 10) {
             return '+94'.substr($digits, 1);
         }
 

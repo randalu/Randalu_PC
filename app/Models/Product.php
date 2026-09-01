@@ -18,13 +18,17 @@ class Product extends Model
         'slug',
         'image_path',
         'seo_description',
+        'specs',
         'sort_order',
         'is_active',
     ];
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean'];
+        return [
+            'is_active' => 'boolean',
+            'specs' => 'array',
+        ];
     }
 
     public function category(): BelongsTo

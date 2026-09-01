@@ -36,6 +36,22 @@
                 </table>
             </div>
 
+            @if (! empty($product->specs))
+                <h2>Specifications</h2>
+                <div class="table-wrap spec-table">
+                    <table class="table">
+                        <tbody>
+                            @foreach ($product->specs as $spec => $value)
+                                <tr>
+                                    <th scope="row">{{ $spec }}</th>
+                                    <td>{{ $value }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+
             <form method="post" action="{{ route('cart.add') }}">
                 @csrf
                 <div class="field">

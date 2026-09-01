@@ -71,12 +71,21 @@ class CustomerAuthController extends Controller
             return redirect()->route('customer.login');
         }
 
+        // Orders placed while signed in are linked via customer_id; guest and
+        // historical orders are found by the normalized phone copy in SQL.
+        $normalized = SriLankanPhone::normalize($customer->phone);
+
         $orders = Order::query()
+            ->where(function ($query) use ($customer, $normalized): void {
+                $query->where('customer_id', $customer->id);
+
+                if ($normalized !== null) {
+                    $query->orWhere('customer_phone_normalized', $normalized);
+                }
+            })
             ->latest()
             ->limit(250)
-            ->get()
-            ->filter(fn (Order $order): bool => SriLankanPhone::same($order->customer_phone, $customer->phone))
-            ->values();
+            ->get();
 
         return view('storefront.account', [
             'customer' => $customer,

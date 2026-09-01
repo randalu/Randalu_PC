@@ -69,6 +69,30 @@ class CustomerAuthTest extends FeatureTestCase
             ->assertSee('Existing Customer');
     }
 
+    public function test_account_lists_orders_by_customer_id_and_normalized_phone(): void
+    {
+        $this->seed();
+
+        $customer = Customer::query()->create(['phone' => '+94771234567', 'name' => 'History Customer']);
+
+        // Same number in a legacy display format, no customer link (guest order).
+        $phoneMatched = $this->placeOrder('History Customer', '94 77 123 4567');
+
+        // Linked to the account but ordered under a different phone.
+        $linked = $this->placeOrder('Relative Buyer', '0769998888');
+        $linked->update(['customer_id' => $customer->id]);
+
+        // Neither linked nor phone-matched: must not appear.
+        $hidden = $this->placeOrder('Other Customer', '0773334444');
+
+        $this->withSession(['customer_id' => $customer->id])
+            ->get(route('customer.account'))
+            ->assertOk()
+            ->assertSee($phoneMatched->order_number)
+            ->assertSee($linked->order_number)
+            ->assertDontSee($hidden->order_number);
+    }
+
     public function test_customer_can_complete_profile_after_registration(): void
     {
         $this->seed();

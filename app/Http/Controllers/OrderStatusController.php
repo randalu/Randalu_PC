@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Services\OrderOtpService;
-use App\Support\SriLankanPhone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -17,16 +16,17 @@ class OrderStatusController extends Controller
         $orders = collect();
 
         if ($verifiedPhone) {
+            // The verified session phone is already normalized E.164, so an
+            // exact indexed match finds every historical format of the number.
             $orders = Order::query()
                 ->with([
                     'items',
                     'events' => fn ($query) => $query->whereIn('type', ['order.placed', 'order.status_changed']),
                 ])
+                ->where('customer_phone_normalized', $verifiedPhone)
                 ->latest()
                 ->limit(250)
-                ->get()
-                ->filter(fn (Order $order): bool => SriLankanPhone::same($order->customer_phone, $verifiedPhone))
-                ->values();
+                ->get();
         }
 
         return view('storefront.order-status', [
