@@ -39,6 +39,19 @@ class ProductCatalogSeeder extends Seeder
             $categoryIds[$name] = $category->id;
         }
 
+        $categoryImages = [
+            'Laptops & Notebooks' => 'images/cat-laptops.png',
+            'Desktop PCs' => 'images/cat-desktops.png',
+            'Processors (CPUs)' => 'images/cat-cpus.png',
+            'Motherboards' => 'images/cat-motherboards.png',
+            'Graphics Cards' => 'images/cat-gpus.png',
+            'Memory (RAM)' => 'images/cat-ram.png',
+            'Storage (SSD & HDD)' => 'images/cat-storage.png',
+            'Power Supplies (PSUs)' => 'images/cat-psus.png',
+            'Monitors & Displays' => 'images/cat-monitors.png',
+            'Peripherals & Accessories' => 'images/cat-peripherals.png',
+        ];
+
         // Each product maps to its variants: option spec => price (LKR).
         $products = [
             ['Laptops & Notebooks', 'RPC-LAP-01', 'Vortex 15 Business Laptop', [
@@ -116,7 +129,7 @@ class ProductCatalogSeeder extends Seeder
                 'category_id' => $categoryIds[$collection],
                 'name' => $name,
                 'slug' => Str::slug($sku.' '.$name),
-                'image_path' => 'images/product-placeholder.png',
+                'image_path' => $categoryImages[$collection],
                 'seo_description' => "{$name} — genuine computer hardware from Randalu PC in Sri Lanka.",
                 'sort_order' => $productSort++,
                 'is_active' => true,

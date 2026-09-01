@@ -5,9 +5,12 @@ namespace Tests\Feature;
 use App\Filament\Resources\Orders\OrderResource;
 use App\Filament\Resources\ProductVariants\ProductVariantResource;
 use App\Filament\Resources\Settings\SettingResource;
+use App\Models\CartItem;
+use App\Models\Category;
 use App\Models\Customer;
 use App\Models\EventLog;
 use App\Models\Order;
+use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Setting;
 use App\Models\User;
@@ -21,6 +24,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -655,6 +659,8 @@ class ExampleTest extends TestCase
     {
         RateLimiter::clear('order-otp-phone:+94771234567');
         RateLimiter::clear('order-otp-ip:127.0.0.1');
+        RateLimiter::clear('customer-otp-phone:+94771234567');
+        RateLimiter::clear('customer-otp-ip:127.0.0.1');
 
         config()->set('services.smslenz.enabled', true);
         config()->set('services.smslenz.base_url', 'https://smslenz.lk/api');
@@ -690,5 +696,172 @@ class ExampleTest extends TestCase
         }
 
         return $order;
+    }
+
+    public function test_guest_cart_persists_via_cookie_token(): void
+    {
+        $this->seed();
+        $variant = ProductVariant::query()->where('stock_quantity', '>', 0)->firstOrFail();
+
+        $this->post('/cart', ['variant_id' => $variant->id, 'quantity' => 1]);
+
+        $this->assertDatabaseHas('cart_items', [
+            'variant_id' => $variant->id,
+            'customer_id' => null,
+        ]);
+
+        $item = CartItem::query()->firstOrFail();
+        $this->assertNotEmpty($item->cart_token);
+    }
+
+    public function test_guest_cart_merges_into_customer_cart_on_login(): void
+    {
+        $this->seed();
+        $this->enableSms();
+        Http::fake(['*' => Http::response(['success' => true, 'message' => 'SMS sent successfully'])]);
+
+        $variant = ProductVariant::query()->where('stock_quantity', '>', 0)->firstOrFail();
+        $token = Str::random(60);
+
+        $this->withCookie('cart_token', $token)
+            ->post('/cart', ['variant_id' => $variant->id, 'quantity' => 1])
+            ->assertRedirect('/cart');
+
+        $this->assertDatabaseHas('cart_items', ['cart_token' => $token]);
+
+        Customer::query()->create(['phone' => '+94771234567', 'name' => 'Cart Merger']);
+
+        $this->withCookie('cart_token', $token)
+            ->post(route('customer.login.request-otp'), ['phone' => '0771234567'])
+            ->assertRedirect();
+
+        $sentOtp = null;
+        Http::assertSent(function (Request $request) use (&$sentOtp): bool {
+            preg_match('/\b(\d{6})\b/', (string) $request['message'], $matches);
+            $sentOtp = $matches[1] ?? null;
+
+            return $sentOtp !== null;
+        });
+
+        $this->withCookie('cart_token', $token)
+            ->post(route('customer.login.verify'), [
+                'phone' => '0771234567',
+                'otp' => $sentOtp,
+            ])->assertRedirect(route('customer.account'));
+
+        $customer = Customer::query()->where('phone', '+94771234567')->firstOrFail();
+
+        $this->assertDatabaseHas('cart_items', [
+            'customer_id' => $customer->id,
+            'variant_id' => $variant->id,
+        ]);
+    }
+
+    public function test_checkout_includes_delivery_fee_in_total(): void
+    {
+        $this->seed();
+        Setting::query()->updateOrCreate(['key' => 'delivery_fee'], ['value' => '1500']);
+        Setting::query()->updateOrCreate(['key' => 'delivery_fee_note'], ['value' => 'Colombo delivery']);
+
+        $variant = ProductVariant::query()->where('stock_quantity', '>', 0)->firstOrFail();
+        $variant->update(['price' => 100000]);
+
+        $this->post('/cart', ['variant_id' => $variant->id, 'quantity' => 1]);
+
+        $response = $this->get('/checkout')->assertOk();
+        $response->assertSee('Delivery fee');
+        $response->assertSee('1,500.00');
+
+        $this->post('/checkout', [
+            'customer_name' => 'Delivery Fee Customer',
+            'customer_phone' => '0771234567',
+            'delivery_address' => 'Colombo',
+        ])->assertRedirect();
+
+        $order = Order::query()->where('customer_phone', '0771234567')->latest()->firstOrFail();
+        $this->assertSame(1500.0, (float) $order->delivery_fee);
+        $this->assertSame(101500.0, (float) $order->total);
+    }
+
+    public function test_out_of_stock_variant_is_disabled_on_product_page(): void
+    {
+        $product = $this->makeProduct('Sold Out GPU', 'sold-out-gpu', 0);
+
+        $this->get(route('products.show', $product->slug))
+            ->assertOk()
+            ->assertSee('Out of stock');
+    }
+
+    public function test_out_of_stock_variant_rejected_on_add(): void
+    {
+        $this->seed();
+        $variant = ProductVariant::query()->where('stock_quantity', '>', 0)->firstOrFail();
+        $variant->update(['stock_quantity' => 0]);
+
+        $this->post('/cart', ['variant_id' => $variant->id, 'quantity' => 1])
+            ->assertSessionHasErrors('quantity');
+
+        $this->assertDatabaseMissing('cart_items', ['variant_id' => $variant->id]);
+    }
+
+    public function test_catalog_paginates(): void
+    {
+        $category = Category::query()->create(['name' => 'Paginated Hardware', 'slug' => 'paginated-hardware']);
+
+        for ($i = 1; $i <= 15; $i++) {
+            $product = Product::query()->create([
+                'category_id' => $category->id,
+                'sku' => 'RPC-PAG-'.str_pad((string) $i, 2, '0', STR_PAD_LEFT),
+                'name' => "Paginated Item {$i}",
+                'slug' => "paginated-item-{$i}",
+                'is_active' => true,
+            ]);
+
+            ProductVariant::query()->create([
+                'product_id' => $product->id,
+                'size' => 'Standard',
+                'price' => 10000 + $i,
+                'stock_quantity' => 5,
+            ]);
+        }
+
+        $this->get('/')->assertOk()->assertSee('Paginated Item 1');
+        $this->get('/?page=2')->assertOk();
+    }
+
+    public function test_spec_comparison_table_renders_on_product_page(): void
+    {
+        $product = $this->makeProduct('Comparable Monitor', 'comparable-monitor', 4);
+        $product->activeVariants()->firstOrFail()->update(['size' => '27 inch']);
+
+        $this->get(route('products.show', $product->slug))
+            ->assertOk()
+            ->assertSee('Variant / Spec')
+            ->assertSee('27 inch');
+    }
+
+    private function makeProduct(string $name, string $slug, int $stock): Product
+    {
+        $category = Category::query()->create([
+            'name' => $name.' Category',
+            'slug' => $slug.'-category',
+        ]);
+
+        $product = Product::query()->create([
+            'category_id' => $category->id,
+            'sku' => 'RPC-'.strtoupper($slug),
+            'name' => $name,
+            'slug' => $slug,
+            'is_active' => true,
+        ]);
+
+        ProductVariant::query()->create([
+            'product_id' => $product->id,
+            'size' => 'Standard',
+            'price' => 10000,
+            'stock_quantity' => $stock,
+        ]);
+
+        return $product;
     }
 }

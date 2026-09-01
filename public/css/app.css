@@ -253,6 +253,34 @@ select:focus-visible, textarea:focus-visible {
 }
 .order-line:last-child { border-bottom: 0; }
 
+/* ---------- Pagination ---------- */
+.pagination { margin: 28px 0 0; }
+.pagination-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--panel);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 0.9rem;
+  transition: border-color 0.15s, background 0.15s;
+}
+.page-btn:hover { border-color: rgba(34, 211, 238, 0.55); }
+.page-btn.active {
+  background: linear-gradient(135deg, #22d3ee, #a78bfa);
+  color: #04121a;
+  border-color: transparent;
+  box-shadow: 0 6px 18px rgba(34, 211, 238, 0.3);
+}
+.page-btn.disabled { opacity: 0.45; cursor: default; pointer-events: none; }
+.page-ellipsis { padding: 0 4px; color: var(--muted); }
+
 .sku {
   font-family: var(--mono);
   font-size: 0.74rem;
@@ -332,6 +360,8 @@ select:focus-visible, textarea:focus-visible {
 }
 .table tr:last-child td { border-bottom: 0; }
 .table tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+
+.spec-table { margin: 0 0 18px; }
 
 /* ---------- Badges / notices ---------- */
 .badge {

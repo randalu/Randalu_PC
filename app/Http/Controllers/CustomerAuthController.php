@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\Order;
+use App\Services\CartService;
 use App\Services\CustomerAuthService;
 use App\Services\EventLogger;
 use App\Support\SriLankanPhone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\View\View;
 
 class CustomerAuthController extends Controller
@@ -44,6 +46,10 @@ class CustomerAuthController extends Controller
         ]);
 
         $customer = $auth->verify($data['phone'], $data['otp'], $request->ip() ?? 'unknown');
+
+        // Merge any guest cart into the customer's cart before rotating the session.
+        app(CartService::class)->mergeGuestCart($request->cookie('cart_token'), $customer->id);
+        Cookie::queue(Cookie::forget('cart_token'));
 
         $request->session()->regenerate();
         $request->session()->put([

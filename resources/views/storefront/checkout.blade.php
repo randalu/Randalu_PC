@@ -23,7 +23,11 @@
                 <p>{{ $item['quantity'] }} x {{ $item['variant']->product->sku }} {{ $item['variant']->size }} - LKR {{ number_format($item['line_total'], 2) }}</p>
             @endforeach
             <h3>Subtotal: LKR {{ number_format($cart['subtotal'], 2) }}</h3>
-            <p class="muted">Delivery fee is confirmed by admin.</p>
+            <h3>Delivery fee: LKR {{ number_format($delivery_fee, 2) }}</h3>
+            <h2>Total: LKR {{ number_format($total, 2) }}</h2>
+            @if (! empty($delivery_fee_note))
+                <p class="muted">{{ $delivery_fee_note }}</p>
+            @endif
         </div></aside>
     </div>
 </section>

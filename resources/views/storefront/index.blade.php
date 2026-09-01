@@ -27,6 +27,8 @@
                 @include('storefront.partials.product-card', ['product' => $product])
             @endforeach
         </div>
+
+        {{ $products->links('vendor.pagination.custom') }}
     </div>
 </section>
 @endsection

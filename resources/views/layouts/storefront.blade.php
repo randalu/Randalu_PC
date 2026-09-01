@@ -18,7 +18,7 @@
         <nav class="nav-links">
             <a href="{{ route('home') }}">Shop</a>
             <a href="{{ route('orders.status') }}">Order status</a>
-            <a href="{{ route('cart.show') }}">Cart ({{ count(session('cart', [])) }})</a>
+            <a href="{{ route('cart.show') }}">Cart ({{ $cart_count ?? 0 }})</a>
             @if ($customer)
                 <a href="{{ route('customer.account') }}">Account</a>
                 <form method="post" action="{{ route('customer.logout') }}" class="nav-logout-form">

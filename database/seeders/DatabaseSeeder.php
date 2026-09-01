@@ -75,6 +75,8 @@ class DatabaseSeeder extends Seeder
             'sms_otp_template' => 'Your Randalu PC order status OTP is {otp}. It expires in 10 minutes.',
             'sms_login_otp_template' => 'Your Randalu PC login OTP is {otp}. It expires in 10 minutes.',
             'sms_order_update_template' => 'Your order {order_number} is now {status}. Track it at {tracking_url}',
+            'delivery_fee' => '0',
+            'delivery_fee_note' => 'Delivery fee is confirmed by our team before dispatch.',
         ];
     }
 }

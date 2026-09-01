@@ -14,6 +14,28 @@
             <p class="muted">{{ $product->category->name }}</p>
             <p>{{ $product->seo_description }}</p>
             <p class="included-note">Genuine hardware with warranty support.</p>
+
+            <div class="table-wrap spec-table">
+                <table class="table">
+                    <thead><tr><th>Variant / Spec</th><th>Price</th><th>Stock</th></tr></thead>
+                    <tbody>
+                        @foreach ($product->activeVariants as $variant)
+                            <tr>
+                                <td>{{ $variant->size }}</td>
+                                <td>LKR {{ number_format((float) $variant->price, 2) }}</td>
+                                <td>
+                                    @if ($variant->stock_quantity > 0)
+                                        {{ $variant->stock_quantity }}
+                                    @else
+                                        <span class="badge bad">Out of stock</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
             <form method="post" action="{{ route('cart.add') }}">
                 @csrf
                 <div class="field">
@@ -21,7 +43,11 @@
                     <select id="variant_id" name="variant_id" required>
                         <option value="" selected disabled>Select variant</option>
                         @foreach ($product->activeVariants as $variant)
-                            <option value="{{ $variant->id }}">{{ $variant->size }} | Stock {{ $variant->stock_quantity }} | LKR {{ number_format((float) $variant->price, 2) }}</option>
+                            @if ($variant->stock_quantity > 0)
+                                <option value="{{ $variant->id }}">{{ $variant->size }} | Stock {{ $variant->stock_quantity }} | LKR {{ number_format((float) $variant->price, 2) }}</option>
+                            @else
+                                <option value="{{ $variant->id }}" disabled>{{ $variant->size }} (out of stock)</option>
+                            @endif
                         @endforeach
                     </select>
                 </div>

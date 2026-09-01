@@ -1,5 +1,7 @@
 @php
     $variant = $product->activeVariants->first();
+    $soldOut = $product->activeVariants->isNotEmpty()
+        && $product->activeVariants->every(fn ($v) => $v->stock_quantity <= 0);
     $message = urlencode("Hello Randalu PC, I'm interested in {$product->sku} - {$product->name}.");
 @endphp
 <article class="card">
@@ -16,7 +18,9 @@
             <a class="btn primary" href="{{ route('products.show', $product) }}">Order Online</a>
             <a class="btn green" href="https://wa.me/{{ $settings['whatsapp_number'] ?? '94776474542' }}?text={{ $message }}">WhatsApp</a>
         </div>
-        @if ($variant)
+        @if ($soldOut)
+            <span class="badge bad">Sold out</span>
+        @elseif ($variant)
             <p class="price">From <span class="sku">{{ $settings['currency'] ?? 'LKR' }} {{ number_format((float) $product->activeVariants->min('price'), 2) }}</span></p>
         @endif
     </div>
