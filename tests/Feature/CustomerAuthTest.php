@@ -44,7 +44,7 @@ class CustomerAuthTest extends FeatureTestCase
         Http::fake(['*' => Http::response(['success' => true, 'message' => 'SMS sent successfully'])]);
 
         $order = $this->placeOrder('Existing Customer', '0771234567');
-        Customer::query()->create(['phone' => '+94771234567', 'name' => 'Existing Customer']);
+        Customer::query()->firstOrCreate(['phone' => '+94771234567'], ['name' => 'Existing Customer']);
 
         $this->post(route('customer.login.request-otp'), ['phone' => '0771234567'])->assertRedirect();
 

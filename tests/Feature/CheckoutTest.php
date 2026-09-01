@@ -13,29 +13,36 @@ use Illuminate\Support\Str;
 
 class CheckoutTest extends FeatureTestCase
 {
-    public function test_customer_can_place_online_order(): void
+    public function test_guest_is_redirected_to_login_when_accessing_checkout(): void
     {
         $this->seed();
         $variant = ProductVariant::query()->firstOrFail();
 
-        $response = $this->post('/cart', ['variant_id' => $variant->id, 'quantity' => 2]);
-        $response->assertRedirect('/cart');
-        $token = CartItem::query()->value('cart_token');
+        $this->post('/cart', ['variant_id' => $variant->id, 'quantity' => 1])->assertRedirect('/cart');
 
-        $checkout = $token ? $this->withCookie('cart_token', $token)->post('/checkout', [
+        $this->get('/checkout')->assertRedirect(route('customer.login'));
+        $this->post('/checkout', [
+            'customer_name' => 'Guest',
+            'customer_phone' => '0771234567',
+            'delivery_address' => 'Colombo',
+        ])->assertRedirect(route('customer.login'));
+    }
+
+    public function test_customer_can_place_online_order(): void
+    {
+        $this->seed();
+        $customer = Customer::query()->create(['phone' => '+94771234567', 'name' => 'Test Customer']);
+        $variant = ProductVariant::query()->firstOrFail();
+
+        $this->withSession(['customer_id' => $customer->id])->post('/cart', ['variant_id' => $variant->id, 'quantity' => 2])->assertRedirect('/cart');
+
+        $this->withSession(['customer_id' => $customer->id])->post('/checkout', [
             'customer_name' => 'Test Customer',
             'customer_phone' => '0771234567',
             'customer_email' => 'customer@example.com',
             'delivery_address' => 'Katunayake',
             'customer_notes' => 'Call before delivery',
-        ]) : $this->post('/checkout', [
-            'customer_name' => 'Test Customer',
-            'customer_phone' => '0771234567',
-            'customer_email' => 'customer@example.com',
-            'delivery_address' => 'Katunayake',
-            'customer_notes' => 'Call before delivery',
-        ]);
-        $checkout->assertRedirect();
+        ])->assertRedirect();
 
         $this->assertDatabaseHas('orders', ['customer_phone' => '0771234567', 'status' => 'new']);
         $this->assertDatabaseHas('order_items', ['product_variant_id' => $variant->id, 'quantity' => 2]);
@@ -48,21 +55,18 @@ class CheckoutTest extends FeatureTestCase
     public function test_checkout_rejects_inactive_variant(): void
     {
         $this->seed();
+        $customer = Customer::query()->create(['phone' => '+94771234567', 'name' => 'Inactive Customer']);
         $variant = ProductVariant::query()->firstOrFail();
 
-        $response = $this->post('/cart', ['variant_id' => $variant->id, 'quantity' => 1]);
-        $response->assertRedirect('/cart');
-        $token = CartItem::query()->value('cart_token');
+        $this->withSession(['customer_id' => $customer->id])->post('/cart', ['variant_id' => $variant->id, 'quantity' => 1])->assertRedirect('/cart');
 
         $variant->update(['is_active' => false]);
 
-        $checkoutData = [
+        $this->withSession(['customer_id' => $customer->id])->post('/checkout', [
             'customer_name' => 'Inactive Customer',
             'customer_phone' => '0771234567',
             'delivery_address' => 'Colombo',
-        ];
-        $checkout = $token ? $this->withCookie('cart_token', $token)->post('/checkout', $checkoutData) : $this->post('/checkout', $checkoutData);
-        $checkout->assertSessionHasErrors('cart');
+        ])->assertSessionHasErrors('cart');
 
         $this->assertDatabaseMissing('orders', ['customer_phone' => '0771234567']);
     }
@@ -70,18 +74,16 @@ class CheckoutTest extends FeatureTestCase
     public function test_checkout_rejects_non_mobile_phone_numbers(): void
     {
         $this->seed();
+        $customer = Customer::query()->create(['phone' => '+94771234567', 'name' => 'Landline Tester']);
         $variant = ProductVariant::query()->firstOrFail();
 
-        $this->post('/cart', ['variant_id' => $variant->id, 'quantity' => 1])->assertRedirect('/cart');
-        $token = CartItem::query()->value('cart_token');
+        $this->withSession(['customer_id' => $customer->id])->post('/cart', ['variant_id' => $variant->id, 'quantity' => 1])->assertRedirect('/cart');
 
-        $checkoutData = [
+        $this->withSession(['customer_id' => $customer->id])->post('/checkout', [
             'customer_name' => 'Landline Customer',
             'customer_phone' => '0112345678',
             'delivery_address' => 'Colombo',
-        ];
-        $response = $token ? $this->withCookie('cart_token', $token)->post('/checkout', $checkoutData) : $this->post('/checkout', $checkoutData);
-        $response->assertSessionHasErrors('customer_phone');
+        ])->assertSessionHasErrors('customer_phone');
 
         $this->assertDatabaseMissing('orders', ['customer_name' => 'Landline Customer']);
     }
@@ -173,25 +175,22 @@ class CheckoutTest extends FeatureTestCase
         $this->seed();
         Setting::query()->updateOrCreate(['key' => 'delivery_fee'], ['value' => '1500']);
         Setting::query()->updateOrCreate(['key' => 'delivery_fee_note'], ['value' => 'Colombo delivery']);
-
+        $customer = Customer::query()->create(['phone' => '+94771234567', 'name' => 'Delivery Fee Tester']);
         $variant = ProductVariant::query()->where('stock_quantity', '>', 0)->firstOrFail();
         $variant->update(['price' => 100000]);
 
-        $response = $this->post('/cart', ['variant_id' => $variant->id, 'quantity' => 1]);
-        $token = CartItem::query()->value('cart_token');
+        $this->withSession(['customer_id' => $customer->id])->post('/cart', ['variant_id' => $variant->id, 'quantity' => 1]);
 
-        $checkoutPage = $token ? $this->withCookie('cart_token', $token)->get('/checkout') : $this->get('/checkout');
+        $checkoutPage = $this->withSession(['customer_id' => $customer->id])->get('/checkout');
         $checkoutPage->assertOk();
         $checkoutPage->assertSee('Delivery fee');
         $checkoutPage->assertSee('1,500.00');
 
-        $checkoutData = [
+        $this->withSession(['customer_id' => $customer->id])->post('/checkout', [
             'customer_name' => 'Delivery Fee Customer',
             'customer_phone' => '0771234567',
             'delivery_address' => 'Colombo',
-        ];
-        $checkout = $token ? $this->withCookie('cart_token', $token)->post('/checkout', $checkoutData) : $this->post('/checkout', $checkoutData);
-        $checkout->assertRedirect();
+        ])->assertRedirect();
 
         $order = Order::query()->where('customer_phone', '0771234567')->latest()->firstOrFail();
         $this->assertSame(1500.0, (float) $order->delivery_fee);

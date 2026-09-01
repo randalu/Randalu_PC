@@ -2,14 +2,15 @@
 
 namespace Tests\Feature;
 
-use App\Models\CartItem;
 use App\Models\Category;
+use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\OrderStatusService;
+use App\Support\SriLankanPhone;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
@@ -40,21 +41,18 @@ abstract class FeatureTestCase extends TestCase
     {
         $variant = ProductVariant::query()->firstOrFail();
 
-        $this->post('/cart', ['variant_id' => $variant->id, 'quantity' => 1]);
-        // Cart token is stored plain in DB (cookie is encrypted) - use plain for withCookie
-        $token = CartItem::query()->value('cart_token');
+        $normalized = SriLankanPhone::normalize($phone) ?? $phone;
+        $customer = Customer::query()->firstOrCreate(
+            ['phone' => $normalized],
+            ['name' => $name, 'delivery_address' => 'Katunayake']
+        );
 
-        $checkoutData = [
+        $this->withSession(['customer_id' => $customer->id])->post('/cart', ['variant_id' => $variant->id, 'quantity' => 1]);
+        $this->withSession(['customer_id' => $customer->id])->post('/checkout', [
             'customer_name' => $name,
             'customer_phone' => $phone,
             'delivery_address' => 'Katunayake',
-        ];
-
-        if ($token !== null) {
-            $this->withCookie('cart_token', $token)->post('/checkout', $checkoutData);
-        } else {
-            $this->post('/checkout', $checkoutData);
-        }
+        ]);
 
         return Order::query()->where('customer_phone', $phone)->latest()->firstOrFail();
     }

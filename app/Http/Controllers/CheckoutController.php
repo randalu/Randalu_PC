@@ -24,8 +24,12 @@ class CheckoutController extends Controller
 
     public function __construct(private readonly CartService $cart) {}
 
-    public function show(Request $request): View
+    public function show(Request $request): View|RedirectResponse
     {
+        if (! $this->cartCustomerId()) {
+            return redirect()->route('customer.login')->with('status', 'Please sign in to checkout.');
+        }
+
         $cart = $this->cart->items($this->cartCustomerId(), $this->cartToken($request));
         abort_if($cart['items']->isEmpty(), 404);
 
@@ -41,6 +45,10 @@ class CheckoutController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        if (! $this->cartCustomerId()) {
+            return redirect()->route('customer.login')->with('status', 'Please sign in to checkout.');
+        }
+
         $cart = $this->cart->items($this->cartCustomerId(), $this->cartToken($request));
         if ($cart['items']->isEmpty()) {
             return redirect()->route('cart.show')->withErrors('Your cart is empty.');

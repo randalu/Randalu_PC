@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Jobs\SendSms;
-use App\Models\CartItem;
+use App\Models\Customer;
 use App\Models\Order;
 use App\Models\ProductVariant;
 use App\Models\User;
@@ -23,15 +23,14 @@ class OrderStatusTest extends FeatureTestCase
         $this->seed();
         $admin = User::query()->firstOrFail();
         $variant = ProductVariant::query()->firstOrFail();
+        $customer = Customer::query()->create(['phone' => '+94777654321', 'name' => 'Stock Customer']);
 
-        $cartResponse = $this->post('/cart', ['variant_id' => $variant->id, 'quantity' => 2]);
-        $token = CartItem::query()->value('cart_token');
-        $checkoutData = [
+        $this->withSession(['customer_id' => $customer->id])->post('/cart', ['variant_id' => $variant->id, 'quantity' => 2]);
+        $this->withSession(['customer_id' => $customer->id])->post('/checkout', [
             'customer_name' => 'Stock Customer',
             'customer_phone' => '0777654321',
             'delivery_address' => 'Negombo',
-        ];
-        $token ? $this->withCookie('cart_token', $token)->post('/checkout', $checkoutData) : $this->post('/checkout', $checkoutData);
+        ]);
 
         $order = Order::query()->where('customer_phone', '0777654321')->firstOrFail();
 

@@ -30,7 +30,12 @@
                 </table>
             </div>
             <h2>Subtotal: LKR {{ number_format($cart['subtotal'], 2) }}</h2>
-            <a class="btn primary" href="{{ route('checkout.show') }}">Checkout</a>
+            @if ($customer)
+                <a class="btn primary" href="{{ route('checkout.show') }}">Checkout</a>
+            @else
+                <a class="btn primary" href="{{ route('customer.login') }}">Sign in to Checkout</a>
+                <p class="muted">Please sign in to place your order.</p>
+            @endif
         @endif
     </div>
 </section>
