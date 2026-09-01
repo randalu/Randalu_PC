@@ -39,17 +39,28 @@ class ProductCatalogSeeder extends Seeder
             $categoryIds[$name] = $category->id;
         }
 
-        $categoryImages = [
-            'Laptops & Notebooks' => 'images/cat-laptops.png',
-            'Desktop PCs' => 'images/cat-desktops.png',
-            'Processors (CPUs)' => 'images/cat-cpus.png',
-            'Motherboards' => 'images/cat-motherboards.png',
-            'Graphics Cards' => 'images/cat-gpus.png',
-            'Memory (RAM)' => 'images/cat-ram.png',
-            'Storage (SSD & HDD)' => 'images/cat-storage.png',
-            'Power Supplies (PSUs)' => 'images/cat-psus.png',
-            'Monitors & Displays' => 'images/cat-monitors.png',
-            'Peripherals & Accessories' => 'images/cat-peripherals.png',
+        $productImages = [
+            'RPC-LAP-01' => 'images/products/rpc-lap-01.jpg',
+            'RPC-LAP-02' => 'images/products/rpc-lap-02.jpg',
+            'RPC-DSK-01' => 'images/products/rpc-dsk-01.jpg',
+            'RPC-DSK-02' => 'images/products/rpc-dsk-02.jpg',
+            'RPC-CPU-01' => 'images/products/rpc-cpu-01.jpg',
+            'RPC-CPU-02' => 'images/products/rpc-cpu-02.jpg',
+            'RPC-MBD-01' => 'images/products/rpc-mbd-01.jpg',
+            'RPC-MBD-02' => 'images/products/rpc-mbd-02.jpg',
+            'RPC-GPU-01' => 'images/products/rpc-gpu-01.jpg',
+            'RPC-GPU-02' => 'images/products/rpc-gpu-02.jpg',
+            'RPC-RAM-01' => 'images/products/rpc-ram-01.jpg',
+            'RPC-RAM-02' => 'images/products/rpc-ram-02.jpg',
+            'RPC-SSD-01' => 'images/products/rpc-ssd-01.jpg',
+            'RPC-SSD-02' => 'images/products/rpc-ssd-02.jpg',
+            'RPC-PSU-01' => 'images/products/rpc-psu-01.jpg',
+            'RPC-PSU-02' => 'images/products/rpc-psu-02.jpg',
+            'RPC-MON-01' => 'images/products/rpc-mon-01.jpg',
+            'RPC-MON-02' => 'images/products/rpc-mon-02.jpg',
+            'RPC-PER-01' => 'images/products/rpc-per-01.jpg',
+            'RPC-PER-02' => 'images/products/rpc-per-02.jpg',
+            'RPC-PER-03' => 'images/products/rpc-per-03.jpg',
         ];
 
         // Each product maps to its variants: option spec => price (LKR).
@@ -129,7 +140,7 @@ class ProductCatalogSeeder extends Seeder
                 'category_id' => $categoryIds[$collection],
                 'name' => $name,
                 'slug' => Str::slug($sku.' '.$name),
-                'image_path' => $categoryImages[$collection],
+                'image_path' => $productImages[$sku],
                 'seo_description' => "{$name} — genuine computer hardware from Randalu PC in Sri Lanka.",
                 'sort_order' => $productSort++,
                 'is_active' => true,
