@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Jobs\SendSms;
+use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\ProductVariant;
 use App\Models\User;
 use App\Services\OrderStatusService;
+use App\Support\SriLankanPhone;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -22,12 +24,14 @@ class OrderStatusTest extends FeatureTestCase
         $admin = User::query()->firstOrFail();
         $variant = ProductVariant::query()->firstOrFail();
 
-        $this->post('/cart', ['variant_id' => $variant->id, 'quantity' => 2]);
-        $this->post('/checkout', [
+        $cartResponse = $this->post('/cart', ['variant_id' => $variant->id, 'quantity' => 2]);
+        $token = CartItem::query()->value('cart_token');
+        $checkoutData = [
             'customer_name' => 'Stock Customer',
             'customer_phone' => '0777654321',
             'delivery_address' => 'Negombo',
-        ]);
+        ];
+        $token ? $this->withCookie('cart_token', $token)->post('/checkout', $checkoutData) : $this->post('/checkout', $checkoutData);
 
         $order = Order::query()->where('customer_phone', '0777654321')->firstOrFail();
 
@@ -271,8 +275,7 @@ class OrderStatusTest extends FeatureTestCase
 
         app(OrderStatusService::class)->update($order, ['status' => 'confirmed'], $admin->id);
 
-        Queue::assertPushed(SendSms::class, fn (SendSms $job): bool =>
-            $job->phone === '+94771234567'
+        Queue::assertPushed(SendSms::class, fn (SendSms $job): bool => SriLankanPhone::normalize($job->phone) === '+94771234567'
             && str_contains($job->message, $order->order_number));
     }
 

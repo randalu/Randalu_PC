@@ -14,7 +14,8 @@ class PruneEventLogs extends Command
 
     public function handle(): int
     {
-        $days = (int) ($this->option('days') ?: Setting::getValue('event_log_retention_days', '30'));
+        $daysOption = $this->option('days');
+        $days = (int) ($daysOption !== null ? $daysOption : Setting::getValue('event_log_retention_days', '30'));
 
         if ($days < 1) {
             $this->error('The retention window must be at least 1 day.');

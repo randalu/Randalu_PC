@@ -6,7 +6,6 @@ use App\Filament\Resources\Customers\CustomerResource;
 use App\Filament\Resources\Orders\OrderResource;
 use App\Filament\Resources\ProductVariants\ProductVariantResource;
 use App\Models\Customer;
-use App\Models\Order;
 use App\Models\ProductVariant;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -75,7 +74,7 @@ class AuthorizationTest extends FeatureTestCase
 
         $this->expectException(RuntimeException::class);
 
-        $this->seed();
+        $this->artisan('db:seed', ['--force' => true]);
     }
 
     public function test_customer_resource_is_read_only_and_gated(): void

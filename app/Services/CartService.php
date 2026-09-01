@@ -5,12 +5,13 @@ namespace App\Services;
 use App\Models\CartItem;
 use App\Models\ProductVariant;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
 class CartService
 {
     /**
-     * @return array{items: \Illuminate\Support\Collection<int, array{variant: ProductVariant, quantity: int, line_total: float}>, subtotal: float}
+     * @return array{items: Collection<int, array{variant: ProductVariant, quantity: int, line_total: float}>, subtotal: float}
      */
     public function items(?int $customerId, ?string $token): array
     {
