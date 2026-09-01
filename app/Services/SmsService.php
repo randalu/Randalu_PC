@@ -35,7 +35,8 @@ class SmsService
             throw new RuntimeException('Phone number must be a valid Sri Lankan mobile number.');
         }
 
-        $message = str($message)->limit(621, '')->toString();
+        // SMSlenz allows messages up to 1500 characters.
+        $message = str($message)->limit(1500, '')->toString();
         $userId = config('services.smslenz.user_id');
         $apiKey = config('services.smslenz.api_key');
         $senderId = Setting::getValue('sms_sender_id', (string) config('services.smslenz.sender_id'));
@@ -59,10 +60,14 @@ class SmsService
             'message' => $message,
         ]);
 
-        if ($response->failed()) {
+        // SMSlenz can return HTTP 200 with a JSON `success: false` payload
+        // (insufficient credit, rejected sender, etc.), so validate the body.
+        $success = $response->successful() && (bool) $response->json('success', false);
+
+        if (! $success) {
             app(EventLogger::class)->record(
                 type: 'sms.failed',
-                summary: "SMSlenz send failed with HTTP {$response->status()}",
+                summary: "SMSlenz send failed (HTTP {$response->status()})",
                 severity: 'error',
                 customerPhone: $contact,
                 metadata: [
@@ -87,9 +92,41 @@ class SmsService
             metadata: [
                 'status' => $response->status(),
                 'sender_id' => $senderId,
+                'balance' => $response->json('data.sms_credit_balance'),
             ],
         );
 
         return true;
+    }
+
+    /**
+     * Query the SMSlenz account-status endpoint.
+     *
+     * @return array<string, mixed>
+     */
+    public function accountStatus(): array
+    {
+        $userId = config('services.smslenz.user_id');
+        $apiKey = config('services.smslenz.api_key');
+
+        if (! $userId || ! $apiKey) {
+            throw new RuntimeException('SMSlenz credentials are not configured.');
+        }
+
+        $response = Http::timeout(15)->asForm()->post(rtrim((string) config('services.smslenz.base_url'), '/').'/account-status', [
+            'user_id' => $userId,
+            'api_key' => $apiKey,
+        ]);
+
+        if ($response->failed() || ! (bool) $response->json('success', false)) {
+            Log::warning('SMSlenz account status check failed.', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            throw new RuntimeException('SMSlenz account status check failed (HTTP '.$response->status().').');
+        }
+
+        return $response->json('data', []);
     }
 }

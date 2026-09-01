@@ -3,12 +3,14 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\Settings\SettingResource;
+use App\Models\Customer;
 use App\Models\EventLog;
 use App\Models\Order;
 use App\Models\ProductVariant;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\OrderStatusService;
+use App\Services\SmsService;
 use App\Services\SmsTestService;
 use App\Support\SriLankanPhone;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -30,7 +32,7 @@ class ExampleTest extends TestCase
         $response = $this->get('/');
 
         $response->assertOk()
-            ->assertSee('Shop computer hardware')
+            ->assertSee('Shop Hardware')
             ->assertSee('RPC-LAP-01');
     }
 
@@ -199,7 +201,7 @@ class ExampleTest extends TestCase
     {
         $this->seed();
         $this->enableSms();
-        Http::fake(['*' => Http::response(['status' => 'ok'])]);
+        Http::fake(['*' => Http::response(['success' => true, 'message' => 'SMS sent successfully'])]);
 
         $visibleOrder = $this->placeOrder('Visible Customer', '0771234567');
         $this->placeOrder('Other Customer', '0779999999');
@@ -263,7 +265,7 @@ class ExampleTest extends TestCase
     {
         $this->seed();
         $this->enableSms();
-        Http::fake(['*' => Http::response(['status' => 'ok'])]);
+        Http::fake(['*' => Http::response(['success' => true, 'message' => 'SMS sent successfully'])]);
 
         $this->placeOrder('OTP Customer', '0771234567');
         $this->post(route('orders.status.send-otp'), ['phone' => '0771234567']);
@@ -286,7 +288,7 @@ class ExampleTest extends TestCase
     {
         $this->seed();
         $this->enableSms();
-        Http::fake(['*' => Http::response(['status' => 'ok'])]);
+        Http::fake(['*' => Http::response(['success' => true, 'message' => 'SMS sent successfully'])]);
 
         $this->placeOrder('Limited Customer', '0771234567');
 
@@ -315,7 +317,7 @@ class ExampleTest extends TestCase
     {
         $this->seed();
         $this->enableSms();
-        Http::fake(['*' => Http::response(['status' => 'ok'])]);
+        Http::fake(['*' => Http::response(['success' => true, 'message' => 'SMS sent successfully'])]);
 
         $admin = User::query()->firstOrFail();
         $order = $this->placeOrder('SMS Customer', '0771234567');
@@ -369,7 +371,7 @@ class ExampleTest extends TestCase
     {
         $this->seed();
         $this->enableSms();
-        Http::fake(['*' => Http::response(['status' => 'ok'])]);
+        Http::fake(['*' => Http::response(['success' => true, 'message' => 'SMS sent successfully'])]);
 
         $admin = User::query()->firstOrFail();
 
@@ -399,6 +401,97 @@ class ExampleTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin')
             ->assertRedirect('/admin/multi-factor-authentication/set-up');
+    }
+
+    public function test_customer_can_register_with_sms_otp(): void
+    {
+        $this->seed();
+        $this->enableSms();
+        Http::fake(['*' => Http::response(['success' => true, 'message' => 'SMS sent successfully'])]);
+
+        $this->post(route('customer.login.request-otp'), ['phone' => '0771234567'])
+            ->assertRedirect()
+            ->assertSessionHas('otp_phone', '+94771234567');
+
+        $sentOtp = null;
+        Http::assertSent(function (Request $request) use (&$sentOtp): bool {
+            preg_match('/\b(\d{6})\b/', (string) $request['message'], $matches);
+            $sentOtp = $matches[1] ?? null;
+
+            return $request->url() === 'https://smslenz.lk/api/send-sms' && $sentOtp !== null;
+        });
+
+        $this->post(route('customer.login.verify'), [
+            'phone' => '0771234567',
+            'otp' => $sentOtp,
+        ])->assertRedirect(route('customer.account'));
+
+        $this->assertDatabaseHas('customers', ['phone' => '+94771234567']);
+        $this->assertNotNull(session('customer_id'));
+        $this->assertDatabaseHas('event_logs', ['type' => 'customer.registered', 'customer_phone' => '+94771234567']);
+    }
+
+    public function test_existing_customer_can_login_and_view_their_orders(): void
+    {
+        $this->seed();
+        $this->enableSms();
+        Http::fake(['*' => Http::response(['success' => true, 'message' => 'SMS sent successfully'])]);
+
+        $order = $this->placeOrder('Existing Customer', '0771234567');
+        Customer::query()->create(['phone' => '+94771234567', 'name' => 'Existing Customer']);
+
+        $this->post(route('customer.login.request-otp'), ['phone' => '0771234567'])->assertRedirect();
+
+        $sentOtp = null;
+        Http::assertSent(function (Request $request) use (&$sentOtp): bool {
+            preg_match('/\b(\d{6})\b/', (string) $request['message'], $matches);
+            $sentOtp = $matches[1] ?? null;
+
+            return $sentOtp !== null;
+        });
+
+        $this->post(route('customer.login.verify'), [
+            'phone' => '0771234567',
+            'otp' => $sentOtp,
+        ])->assertRedirect(route('customer.account'));
+
+        $this->assertDatabaseHas('event_logs', ['type' => 'customer.logged_in', 'customer_phone' => '+94771234567']);
+
+        $this->get(route('customer.account'))
+            ->assertOk()
+            ->assertSee($order->order_number)
+            ->assertSee('Existing Customer');
+    }
+
+    public function test_customer_can_complete_profile_after_registration(): void
+    {
+        $this->seed();
+        $customer = Customer::query()->create(['phone' => '+94771234567']);
+
+        $this->withSession(['customer_id' => $customer->id])
+            ->post(route('customer.profile'), [
+                'name' => 'Kasun Perera',
+                'email' => 'kasun@example.com',
+                'delivery_address' => 'Negombo',
+            ])->assertRedirect(route('customer.account'));
+
+        $this->assertDatabaseHas('customers', [
+            'id' => $customer->id,
+            'name' => 'Kasun Perera',
+            'delivery_address' => 'Negombo',
+        ]);
+    }
+
+    public function test_sms_send_treats_success_false_as_failure(): void
+    {
+        $this->seed();
+        $this->enableSms();
+        Http::fake(['*' => Http::response(['success' => false, 'message' => 'Insufficient credit'])]);
+
+        $sent = app(SmsService::class)->send('0771234567', 'Hello');
+
+        $this->assertFalse($sent);
+        $this->assertDatabaseHas('event_logs', ['type' => 'sms.failed', 'severity' => 'error']);
     }
 
     private function enableSms(): void

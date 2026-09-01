@@ -17,7 +17,7 @@
             <a class="btn green" href="https://wa.me/{{ $settings['whatsapp_number'] ?? '94776474542' }}?text={{ $message }}">WhatsApp</a>
         </div>
         @if ($variant)
-            <p class="muted">From {{ $settings['currency'] ?? 'LKR' }} {{ number_format((float) $product->activeVariants->min('price'), 2) }}</p>
+            <p class="price">From <span class="sku">{{ $settings['currency'] ?? 'LKR' }} {{ number_format((float) $product->activeVariants->min('price'), 2) }}</span></p>
         @endif
     </div>
 </article>

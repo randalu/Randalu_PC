@@ -13,7 +13,7 @@
             <h1>{{ $product->name }}</h1>
             <p class="muted">{{ $product->category->name }}</p>
             <p>{{ $product->seo_description }}</p>
-            <p class="included-note">All products are genuine with warranty support.</p>
+            <p class="included-note">Genuine hardware with warranty support.</p>
             <form method="post" action="{{ route('cart.add') }}">
                 @csrf
                 <div class="field">
