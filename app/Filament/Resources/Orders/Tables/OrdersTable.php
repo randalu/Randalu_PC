@@ -118,7 +118,7 @@ class OrdersTable
             ->label($label)
             ->color($color)
             ->schema($schema)
-            ->visible(fn (Order $record): bool => $record->canTransitionTo($status) && $record->status !== $status)
+            ->visible(fn (Order $record): bool => (auth()->user()?->canManageOrders() ?? false) && $record->canTransitionTo($status) && $record->status !== $status)
             ->action(function (Order $record, array $data) use ($status, $label): void {
                 try {
                     app(OrderStatusService::class)->update($record, [

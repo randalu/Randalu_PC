@@ -43,8 +43,9 @@ class CustomerAuthController extends Controller
             'otp' => ['required', 'digits:6'],
         ]);
 
-        $customer = $auth->verify($data['phone'], $data['otp']);
+        $customer = $auth->verify($data['phone'], $data['otp'], $request->ip() ?? 'unknown');
 
+        $request->session()->regenerate();
         $request->session()->put([
             'customer_id' => $customer->id,
             'customer_name' => $customer->name,

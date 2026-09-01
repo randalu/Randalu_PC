@@ -52,12 +52,16 @@ class OrderOtpService
         return $normalized;
     }
 
-    public function verify(string $phone, string $otp): string
+    public function verify(string $phone, string $otp, ?string $ip = null): string
     {
         $normalized = $this->normalizeOrFail($phone);
+        $this->ensureVerifyRateLimit($normalized, $ip);
+
         $hash = Cache::get($this->cacheKey($normalized));
 
         if (! $hash || ! Hash::check($otp, $hash)) {
+            $this->recordFailedVerify($normalized, $ip);
+
             app(EventLogger::class)->record(
                 type: 'otp.failed',
                 summary: 'Order status OTP verification failed',
@@ -70,6 +74,7 @@ class OrderOtpService
             ]);
         }
 
+        $this->clearVerifyRateLimit($normalized, $ip);
         Cache::forget($this->cacheKey($normalized));
 
         app(EventLogger::class)->record(
@@ -113,6 +118,53 @@ class OrderOtpService
 
             RateLimiter::hit($key, 300);
         }
+    }
+
+    private function ensureVerifyRateLimit(string $phone, ?string $ip): void
+    {
+        foreach ($this->verifyKeys($phone, $ip) as $key) {
+            if (RateLimiter::tooManyAttempts($key, 5)) {
+                app(EventLogger::class)->record(
+                    type: 'otp.verify_rate_limited',
+                    summary: 'Order status OTP verification rate limited',
+                    severity: 'warning',
+                    customerPhone: $phone,
+                    ipAddress: $ip,
+                );
+
+                throw ValidationException::withMessages([
+                    'otp' => 'Too many attempts. Request a new OTP and try again.',
+                ]);
+            }
+        }
+    }
+
+    private function recordFailedVerify(string $phone, ?string $ip): void
+    {
+        foreach ($this->verifyKeys($phone, $ip) as $key) {
+            RateLimiter::hit($key, 600);
+        }
+    }
+
+    private function clearVerifyRateLimit(string $phone, ?string $ip): void
+    {
+        foreach ($this->verifyKeys($phone, $ip) as $key) {
+            RateLimiter::clear($key);
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function verifyKeys(string $phone, ?string $ip): array
+    {
+        $keys = ["order-otp-verify-phone:{$phone}"];
+
+        if ($ip) {
+            $keys[] = "order-otp-verify-ip:{$ip}";
+        }
+
+        return $keys;
     }
 
     private function hasOrdersForPhone(string $phone): bool

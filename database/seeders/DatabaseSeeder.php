@@ -6,6 +6,7 @@ use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use RuntimeException;
 
 class DatabaseSeeder extends Seeder
 {
@@ -14,19 +15,52 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::query()->updateOrCreate([
-            'email' => env('ADMIN_EMAIL', 'admin@randalu-pc.lk'),
-        ], [
-            'name' => env('ADMIN_NAME', 'Randalu PC Admin'),
-            'role' => User::ROLE_SUPER_ADMIN,
-            'password' => Hash::make(env('ADMIN_PASSWORD', 'ChangeMeNow!2026')),
-        ]);
+        $this->seedAdmin();
 
         foreach ($this->settings() as $key => $value) {
             Setting::query()->updateOrCreate(['key' => $key], ['value' => $value]);
         }
 
         $this->call(ProductCatalogSeeder::class);
+    }
+
+    /**
+     * Create the super-admin on first seed only. Re-seeding must never
+     * overwrite a live admin's password with the published default.
+     */
+    private function seedAdmin(): void
+    {
+        $email = env('ADMIN_EMAIL', 'admin@randalu-pc.lk');
+        $name = env('ADMIN_NAME', 'Randalu PC Admin');
+
+        $admin = User::query()->where('email', $email)->first();
+
+        if ($admin) {
+            // Sync non-sensitive fields only — never touch the password.
+            $admin->update([
+                'name' => $name,
+                'role' => User::ROLE_SUPER_ADMIN,
+            ]);
+
+            $this->command?->warn("Admin {$email} already exists; password left unchanged.");
+
+            return;
+        }
+
+        $password = env('ADMIN_PASSWORD');
+
+        if (app()->environment('production') && (blank($password) || $password === 'ChangeMeNow!2026')) {
+            throw new RuntimeException(
+                'Refusing to seed the default admin password in production. Set a strong ADMIN_PASSWORD in .env.'
+            );
+        }
+
+        User::query()->create([
+            'email' => $email,
+            'name' => $name,
+            'role' => User::ROLE_SUPER_ADMIN,
+            'password' => Hash::make($password ?: 'ChangeMeNow!2026'),
+        ]);
     }
 
     /**

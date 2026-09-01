@@ -1,6 +1,5 @@
 *.log
 site.zip
-favicon.png
 README-SEO.txt
 .DS_Store
 .env

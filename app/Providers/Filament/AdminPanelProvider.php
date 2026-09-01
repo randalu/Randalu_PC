@@ -35,7 +35,7 @@ class AdminPanelProvider extends PanelProvider
             ], isRequired: true)
             ->brandName('Randalu PC Admin')
             ->brandLogo(asset('images/logo.png'))
-            ->favicon(asset('favicon.png'))
+            ->favicon(asset('images/logo.png'))
             ->colors([
                 'primary' => Color::Indigo,
             ])

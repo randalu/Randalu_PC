@@ -56,7 +56,9 @@ class OrderStatusController extends Controller
             'otp' => ['required', 'digits:6'],
         ]);
 
-        $phone = $otp->verify($data['phone'], $data['otp']);
+        $phone = $otp->verify($data['phone'], $data['otp'], $request->ip() ?? 'unknown');
+
+        $request->session()->regenerate();
         $request->session()->put('order_status_phone', $phone);
 
         return redirect()->route('orders.status')->with('status', 'Order status access verified.');

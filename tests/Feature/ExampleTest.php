@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\Orders\OrderResource;
+use App\Filament\Resources\ProductVariants\ProductVariantResource;
 use App\Filament\Resources\Settings\SettingResource;
 use App\Models\Customer;
 use App\Models\EventLog;
@@ -16,6 +18,7 @@ use App\Support\SriLankanPhone;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use RuntimeException;
@@ -492,6 +495,160 @@ class ExampleTest extends TestCase
 
         $this->assertFalse($sent);
         $this->assertDatabaseHas('event_logs', ['type' => 'sms.failed', 'severity' => 'error']);
+    }
+
+    public function test_reseeding_does_not_overwrite_existing_admin_password(): void
+    {
+        $this->seed();
+        $admin = User::query()->firstOrFail();
+
+        DB::table('users')->where('id', $admin->id)->update(['password' => 'existing-hash-value']);
+
+        $this->seed();
+
+        $this->assertSame('existing-hash-value', User::query()->find($admin->id)->password);
+    }
+
+    public function test_seeding_production_without_admin_password_fails(): void
+    {
+        $this->app['env'] = 'production';
+
+        $this->expectException(RuntimeException::class);
+
+        $this->seed();
+    }
+
+    public function test_cancelling_a_confirmed_order_restores_stock(): void
+    {
+        $this->seed();
+        $admin = User::query()->firstOrFail();
+        $variant = ProductVariant::query()->firstOrFail();
+        $initialStock = $variant->stock_quantity;
+
+        $order = $this->placeOrder('Cancel Customer', '0771234567');
+
+        app(OrderStatusService::class)->update($order, ['status' => 'confirmed'], $admin->id);
+        $this->assertDatabaseHas('product_variants', ['id' => $variant->id, 'stock_quantity' => $initialStock - 1]);
+
+        app(OrderStatusService::class)->update($order->refresh(), ['status' => 'cancelled'], $admin->id);
+
+        $this->assertDatabaseHas('product_variants', ['id' => $variant->id, 'stock_quantity' => $initialStock]);
+        $this->assertDatabaseHas('inventory_movements', [
+            'product_variant_id' => $variant->id,
+            'order_id' => $order->id,
+            'quantity_change' => 1,
+            'reason' => 'order_cancelled',
+        ]);
+    }
+
+    public function test_cancelling_a_new_order_does_not_restock(): void
+    {
+        $this->seed();
+        $admin = User::query()->firstOrFail();
+        $order = $this->placeOrder('New Cancel', '0779999999');
+
+        app(OrderStatusService::class)->update($order, ['status' => 'cancelled'], $admin->id);
+
+        $this->assertDatabaseMissing('inventory_movements', [
+            'order_id' => $order->id,
+            'reason' => 'order_cancelled',
+        ]);
+    }
+
+    public function test_order_status_otp_verification_is_rate_limited(): void
+    {
+        $this->seed();
+        $this->enableSms();
+        Http::fake(['*' => Http::response(['success' => true, 'message' => 'SMS sent successfully'])]);
+
+        RateLimiter::clear('order-otp-verify-phone:+94771234567');
+        RateLimiter::clear('order-otp-verify-ip:127.0.0.1');
+
+        $this->placeOrder('Verify Limit', '0771234567');
+        $this->post(route('orders.status.send-otp'), ['phone' => '0771234567'])->assertSessionHasNoErrors();
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->post(route('orders.status.verify'), ['phone' => '0771234567', 'otp' => '000000'])
+                ->assertSessionHasErrors('otp');
+        }
+
+        $this->post(route('orders.status.verify'), ['phone' => '0771234567', 'otp' => '000000'])
+            ->assertSessionHasErrors('otp');
+
+        $this->assertDatabaseHas('event_logs', [
+            'type' => 'otp.verify_rate_limited',
+            'severity' => 'warning',
+            'customer_phone' => '+94771234567',
+        ]);
+    }
+
+    public function test_staff_cannot_manage_orders_or_inventory(): void
+    {
+        $this->seed();
+        $order = $this->placeOrder('Auth Check', '0771234567');
+        $staff = User::factory()->create(['role' => User::ROLE_STAFF]);
+
+        $this->actingAs($staff);
+
+        $this->assertFalse(OrderResource::canViewAny());
+        $this->assertFalse(OrderResource::canEdit($order));
+        $this->assertFalse(ProductVariantResource::canCreate());
+        $this->assertFalse(ProductVariantResource::canEdit(ProductVariant::query()->firstOrFail()));
+    }
+
+    public function test_admin_can_manage_orders_and_inventory(): void
+    {
+        $this->seed();
+        $order = $this->placeOrder('Admin Check', '0772222222');
+        $admin = User::query()->firstOrFail();
+
+        $this->actingAs($admin);
+
+        $this->assertTrue(OrderResource::canViewAny());
+        $this->assertTrue(OrderResource::canEdit($order));
+        $this->assertTrue(ProductVariantResource::canCreate());
+        $this->assertTrue(ProductVariantResource::canEdit(ProductVariant::query()->firstOrFail()));
+    }
+
+    public function test_checkout_rejects_inactive_variant(): void
+    {
+        $this->seed();
+        $variant = ProductVariant::query()->firstOrFail();
+
+        $this->post('/cart', ['variant_id' => $variant->id, 'quantity' => 1])->assertRedirect('/cart');
+
+        $variant->update(['is_active' => false]);
+
+        $this->post('/checkout', [
+            'customer_name' => 'Inactive Customer',
+            'customer_phone' => '0771234567',
+            'delivery_address' => 'Colombo',
+        ])->assertSessionHasErrors('cart');
+
+        $this->assertDatabaseMissing('orders', ['customer_phone' => '0771234567']);
+    }
+
+    public function test_checkout_links_order_to_logged_in_customer(): void
+    {
+        $this->seed();
+        $customer = Customer::query()->create(['phone' => '+94771234567', 'name' => 'Linked Customer']);
+        $variant = ProductVariant::query()->firstOrFail();
+
+        $this->withSession(['customer_id' => $customer->id])
+            ->post('/cart', ['variant_id' => $variant->id, 'quantity' => 1])
+            ->assertRedirect('/cart');
+
+        $this->withSession(['customer_id' => $customer->id])
+            ->post('/checkout', [
+                'customer_name' => 'Linked Customer',
+                'customer_phone' => '0771234567',
+                'delivery_address' => 'Colombo',
+            ])->assertRedirect();
+
+        $this->assertDatabaseHas('orders', [
+            'customer_phone' => '0771234567',
+            'customer_id' => $customer->id,
+        ]);
     }
 
     private function enableSms(): void

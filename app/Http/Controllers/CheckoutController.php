@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class CheckoutController extends Controller
@@ -42,12 +43,35 @@ class CheckoutController extends Controller
             $order = Order::query()->create([
                 ...$data,
                 'order_number' => $this->orderNumber(),
+                'customer_id' => session('customer_id'),
                 'subtotal' => $cart['subtotal'],
                 'total' => $cart['subtotal'],
             ]);
 
+            $subtotal = 0;
+
             foreach ($cart['items'] as $item) {
-                $variant = $item['variant'];
+                // Re-validate against the current DB state — a variant may have
+                // been deactivated or sold out after it was added to the cart.
+                $variant = ProductVariant::query()
+                    ->with('product.category')
+                    ->find($item['variant']->id);
+
+                if (! $variant
+                    || ! $variant->is_active
+                    || ! $variant->product?->is_active
+                    || ! $variant->product?->category?->is_active
+                    || $variant->stock_quantity < $item['quantity']) {
+                    $sku = $variant?->product?->sku ?? $item['variant']->product?->sku ?? 'Item';
+
+                    throw ValidationException::withMessages([
+                        'cart' => "{$sku} is no longer available in the requested quantity. Please update your cart and try again.",
+                    ]);
+                }
+
+                $lineTotal = $item['quantity'] * (float) $variant->price;
+                $subtotal += $lineTotal;
+
                 $order->items()->create([
                     'product_id' => $variant->product_id,
                     'product_variant_id' => $variant->id,
@@ -57,11 +81,14 @@ class CheckoutController extends Controller
                     'color' => $variant->color,
                     'quantity' => $item['quantity'],
                     'unit_price' => $variant->price,
-                    'line_total' => $item['line_total'],
+                    'line_total' => $lineTotal,
                 ]);
             }
 
-            return $order;
+            // Reflect current prices (they may have changed since the cart loaded).
+            $order->update(['subtotal' => $subtotal, 'total' => $subtotal]);
+
+            return $order->refresh();
         });
 
         app(EventLogger::class)->record(

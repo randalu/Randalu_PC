@@ -26,6 +26,11 @@ class EventLogResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'summary';
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
     public static function canCreate(): bool
     {
         return false;
