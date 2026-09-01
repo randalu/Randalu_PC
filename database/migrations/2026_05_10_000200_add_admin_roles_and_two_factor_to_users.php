@@ -23,7 +23,7 @@ return new class extends Migration
             }
         });
 
-        $adminEmail = env('ADMIN_EMAIL', 'admin@bedsheets.ptree.lk');
+        $adminEmail = env('ADMIN_EMAIL', 'admin@randalu-pc.lk');
 
         $updated = DB::table('users')
             ->where('email', $adminEmail)

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\CustomerAuthController;
 use App\Http\Controllers\OrderStatusController;
 use App\Http\Controllers\SeoController;
 use App\Http\Controllers\StorefrontController;
@@ -27,3 +28,10 @@ Route::delete('/order-status', [OrderStatusController::class, 'logout'])->name('
 
 Route::get('/robots.txt', [SeoController::class, 'robots'])->name('seo.robots');
 Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('seo.sitemap');
+
+Route::get('/login', [CustomerAuthController::class, 'show'])->name('customer.login');
+Route::post('/login/request-otp', [CustomerAuthController::class, 'requestOtp'])->name('customer.login.request-otp');
+Route::post('/login/verify', [CustomerAuthController::class, 'verify'])->name('customer.login.verify');
+Route::get('/account', [CustomerAuthController::class, 'account'])->name('customer.account');
+Route::post('/account/profile', [CustomerAuthController::class, 'profile'])->name('customer.profile');
+Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('customer.logout');

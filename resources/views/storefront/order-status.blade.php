@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', 'Check order status | Priyanthi Multi Stores')
+@section('title', 'Check order status | Randalu PC')
 
 @section('content')
 <section class="section">

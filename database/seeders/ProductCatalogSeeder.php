@@ -13,15 +13,16 @@ class ProductCatalogSeeder extends Seeder
     public function run(): void
     {
         $collections = [
-            'Earth & Clay Collection' => 'Warm earth-toned bedsheet sets with floral and rustic everyday patterns.',
-            'Scandinavian Soft Collection' => 'Soft modern patterns inspired by cool tones, florals, and minimal prints.',
-            'Kids & Teen Collection' => 'Playful, bright, and gentle bedsheet sets for younger bedrooms.',
-            'Urban Edge Collection' => 'Bold modern prints for statement bedroom styling.',
-            'Luxury Street Collection' => 'High-contrast and premium-inspired bedsheet designs.',
-            'Orient Luxe Collection' => 'Rich decorative bedding with refined traditional character.',
-            'Luxury Minimal Collection' => 'Clean, calm, and polished bedding designs for minimal rooms.',
-            'Urban Safari Collection' => 'Graphic safari-inspired patterns with contemporary contrast.',
-            'Romantic Bloom Collection' => 'Soft floral bedding designs with romantic color palettes.',
+            'Laptops & Notebooks' => 'Business laptops and ultrabooks for work, study, and everyday use.',
+            'Desktop PCs' => 'Ready-built gaming towers and compact office desktops.',
+            'Processors (CPUs)' => 'Intel and AMD processors for new builds and upgrades.',
+            'Motherboards' => 'ATX and Micro-ATX boards for Intel and AMD platforms.',
+            'Graphics Cards' => 'NVIDIA and AMD GPUs for gaming and content creation.',
+            'Memory (RAM)' => 'DDR4 and DDR5 memory kits for laptops and desktops.',
+            'Storage (SSD & HDD)' => 'NVMe and SATA solid-state drives for faster systems.',
+            'Power Supplies (PSUs)' => 'Reliable 80+ certified power supplies for every build.',
+            'Monitors & Displays' => 'FHD and QHD monitors for work and gaming setups.',
+            'Peripherals & Accessories' => 'Keyboards, mice, and headsets for complete setups.',
         ];
 
         $categoryIds = [];
@@ -38,61 +39,119 @@ class ProductCatalogSeeder extends Seeder
             $categoryIds[$name] = $category->id;
         }
 
+        $productImages = [
+            'RPC-LAP-01' => 'images/products/rpc-lap-01.jpg',
+            'RPC-LAP-02' => 'images/products/rpc-lap-02.jpg',
+            'RPC-DSK-01' => 'images/products/rpc-dsk-01.jpg',
+            'RPC-DSK-02' => 'images/products/rpc-dsk-02.jpg',
+            'RPC-CPU-01' => 'images/products/rpc-cpu-01.jpg',
+            'RPC-CPU-02' => 'images/products/rpc-cpu-02.jpg',
+            'RPC-MBD-01' => 'images/products/rpc-mbd-01.jpg',
+            'RPC-MBD-02' => 'images/products/rpc-mbd-02.jpg',
+            'RPC-GPU-01' => 'images/products/rpc-gpu-01.jpg',
+            'RPC-GPU-02' => 'images/products/rpc-gpu-02.jpg',
+            'RPC-RAM-01' => 'images/products/rpc-ram-01.jpg',
+            'RPC-RAM-02' => 'images/products/rpc-ram-02.jpg',
+            'RPC-SSD-01' => 'images/products/rpc-ssd-01.jpg',
+            'RPC-SSD-02' => 'images/products/rpc-ssd-02.jpg',
+            'RPC-PSU-01' => 'images/products/rpc-psu-01.jpg',
+            'RPC-PSU-02' => 'images/products/rpc-psu-02.jpg',
+            'RPC-MON-01' => 'images/products/rpc-mon-01.jpg',
+            'RPC-MON-02' => 'images/products/rpc-mon-02.jpg',
+            'RPC-PER-01' => 'images/products/rpc-per-01.jpg',
+            'RPC-PER-02' => 'images/products/rpc-per-02.jpg',
+            'RPC-PER-03' => 'images/products/rpc-per-03.jpg',
+        ];
+
+        // Each product maps to its variants: option spec => price (LKR).
         $products = [
-            ['Earth & Clay Collection', 'EC-NEM-01', 'Nordic Ember Bedsheet Set', 'images/24087.png'],
-            ['Earth & Clay Collection', 'EC-SLB-02', 'Slate Blossom Bedsheet Set', 'images/24084.png'],
-            ['Earth & Clay Collection', 'EC-CBL-04', 'Cinnamon Bloom Bedsheet Set', 'images/24083.png'],
-            ['Earth & Clay Collection', 'EC-BLF-09', 'Beautiful Life Bedsheet Set', 'images/24068.png'],
-            ['Earth & Clay Collection', 'EC-TMR-14', 'Terracotta Motif Rust Bedsheet Set', 'images/24075.png'],
-            ['Scandinavian Soft Collection', 'SS-STN-03', 'Stardust Night Bedsheet Set', 'images/24065.png'],
-            ['Scandinavian Soft Collection', 'SS-ABM-07', 'Arctic Blue Mosaic Bedsheet Set', 'images/24066.png'],
-            ['Scandinavian Soft Collection', 'SS-LWB-16', 'Lavender Wild Bloom Bedsheet Set', 'images/24077.png'],
-            ['Scandinavian Soft Collection', 'SS-LVM-19', 'Lavender Mist Motif Bedsheet Set', 'images/24080.png'],
-            ['Scandinavian Soft Collection', 'SS-MTL-23', 'Minimal Text Linen Bedsheet Set', 'images/11058.png'],
-            ['Kids & Teen Collection', 'KT-SLH-05', 'Sweetheart Loop Bedsheet Set', 'images/24082.png'],
-            ['Kids & Teen Collection', 'KT-OCS-06', 'Ocean Serenity Bedsheet Set', 'images/24081.png'],
-            ['Kids & Teen Collection', 'KT-SDG-10', 'Sunny Daisy Garden Bedsheet Set', 'images/24069.png'],
-            ['Kids & Teen Collection', 'KT-GAP-20', 'Gentle Apple Dream Bedsheet Set', 'images/11129.png'],
-            ['Kids & Teen Collection', 'KT-CRP-22', 'Candy Rose Patchwork Bedsheet Set', 'images/11125.png'],
-            ['Urban Edge Collection', 'UE-IFR-08', 'Inferno Rush Bedsheet Set', 'images/24067.png'],
-            ['Luxury Street Collection', 'LS-CRN-11', 'Crimson Noir Bedsheet Set', 'images/24070.png'],
-            ['Luxury Street Collection', 'LS-MGD-13', 'Monaco Gold Bedsheet Set', 'images/24074.png'],
-            ['Luxury Street Collection', 'LS-BCT-26', 'British Camel Tartan Bedsheet Set', 'images/11054.png'],
-            ['Orient Luxe Collection', 'OL-GDH-12', 'Golden Harmony Bedsheet Set', 'images/24073.png'],
-            ['Luxury Minimal Collection', 'LM-CRB-15', 'Coral Blush Bedsheet Set', 'images/24079.png'],
-            ['Luxury Minimal Collection', 'LM-SGH-24', 'Silver Grid Harmony Bedsheet Set', 'images/11057.png'],
-            ['Luxury Minimal Collection', 'LM-TWH-25', 'Teal Weave Harmony Bedsheet Set', 'images/11056.png'],
-            ['Luxury Minimal Collection', 'LM-STN-27', 'Sandstone Herringbone Bedsheet Set', 'images/11053.png'],
-            ['Urban Safari Collection', 'US-SVN-17', 'Savannah Noir Bedsheet Set', 'images/24078.png'],
-            ['Romantic Bloom Collection', 'RB-RGD-18', 'Rose Garden Dream Bedsheet Set', 'images/24076.png'],
-            ['Romantic Bloom Collection', 'RB-FWS-21', 'Forever Wishes Bedsheet Set', 'images/11128.png'],
+            ['Laptops & Notebooks', 'RPC-LAP-01', 'Vortex 15 Business Laptop', [
+                'Intel i5 / 8GB / 512GB SSD' => 245000,
+                'Intel i7 / 16GB / 1TB SSD' => 320000,
+            ]],
+            ['Laptops & Notebooks', 'RPC-LAP-02', 'UltraLite 14 Ultrabook', [
+                'Ryzen 5 / 16GB / 512GB SSD' => 285000,
+            ]],
+            ['Desktop PCs', 'RPC-DSK-01', 'Nova Tower Gaming PC', [
+                'RTX 4060 / Intel i5' => 389000,
+                'RTX 4070 / Intel i7' => 545000,
+            ]],
+            ['Desktop PCs', 'RPC-DSK-02', 'Office Mini PC', [
+                'Intel i3 / 8GB / 256GB' => 145000,
+            ]],
+            ['Processors (CPUs)', 'RPC-CPU-01', 'Intel Core i5-14400', [
+                '14th Gen / 10 Cores' => 68000,
+            ]],
+            ['Processors (CPUs)', 'RPC-CPU-02', 'AMD Ryzen 7 7800X3D', [
+                '8 Cores / 3D V-Cache' => 165000,
+            ]],
+            ['Motherboards', 'RPC-MBD-01', 'B760 ATX Motherboard', [
+                'LGA1700 / DDR5' => 78000,
+            ]],
+            ['Motherboards', 'RPC-MBD-02', 'B650M Micro-ATX Motherboard', [
+                'AM5 / DDR5' => 72000,
+            ]],
+            ['Graphics Cards', 'RPC-GPU-01', 'GeForce RTX 4060', [
+                '8GB GDDR6' => 185000,
+            ]],
+            ['Graphics Cards', 'RPC-GPU-02', 'Radeon RX 7800 XT', [
+                '16GB GDDR6' => 235000,
+            ]],
+            ['Memory (RAM)', 'RPC-RAM-01', '16GB DDR5 Memory Kit', [
+                '2x8GB / 5600MT/s' => 28500,
+            ]],
+            ['Memory (RAM)', 'RPC-RAM-02', '32GB DDR5 Memory Kit', [
+                '2x16GB / 6000MT/s' => 52000,
+            ]],
+            ['Storage (SSD & HDD)', 'RPC-SSD-01', '1TB NVMe SSD', [
+                'Gen4 M.2' => 42000,
+            ]],
+            ['Storage (SSD & HDD)', 'RPC-SSD-02', '2TB SATA SSD', [
+                '2.5-inch' => 65000,
+            ]],
+            ['Power Supplies (PSUs)', 'RPC-PSU-01', '650W 80+ Bronze PSU', [
+                'Semi-modular' => 32000,
+            ]],
+            ['Power Supplies (PSUs)', 'RPC-PSU-02', '850W 80+ Gold PSU', [
+                'Fully modular' => 54000,
+            ]],
+            ['Monitors & Displays', 'RPC-MON-01', '24-inch FHD Monitor', [
+                'IPS / 100Hz' => 78000,
+            ]],
+            ['Monitors & Displays', 'RPC-MON-02', '27-inch QHD Monitor', [
+                'IPS / 165Hz' => 135000,
+            ]],
+            ['Peripherals & Accessories', 'RPC-PER-01', 'Mechanical Gaming Keyboard', [
+                'Blue switches / RGB' => 24000,
+            ]],
+            ['Peripherals & Accessories', 'RPC-PER-02', 'Wireless Gaming Mouse', [
+                '26K DPI' => 16000,
+            ]],
+            ['Peripherals & Accessories', 'RPC-PER-03', 'RGB Gaming Headset', [
+                '7.1 Surround' => 19000,
+            ]],
         ];
 
         $productSort = 1;
-        foreach ($products as [$collection, $sku, $name, $image]) {
-            $cleanName = Str::of($name)->replace(' Bedsheet Set', '');
+        foreach ($products as [$collection, $sku, $name, $variants]) {
             $product = Product::query()->updateOrCreate([
                 'sku' => $sku,
             ], [
                 'category_id' => $categoryIds[$collection],
                 'name' => $name,
                 'slug' => Str::slug($sku.' '.$name),
-                'image_path' => $image,
-                'seo_description' => "{$cleanName} is a locally tailored bedsheet and pillowcase set from Priyanthi Multi Stores in the {$collection}.",
+                'image_path' => $productImages[$sku],
+                'seo_description' => "{$name} — genuine computer hardware from Randalu PC in Sri Lanka.",
                 'sort_order' => $productSort++,
                 'is_active' => true,
             ]);
 
-            $product->variants()
-                ->whereNotIn('size', ['90 x 90', '90 x 100'])
-                ->update(['is_active' => false]);
-
-            foreach (['90 x 90', '90 x 100'] as $size) {
+            foreach ($variants as $spec => $price) {
                 $product->variants()->updateOrCreate([
-                    'size' => $size,
+                    'size' => $spec,
                     'color' => 'As pictured',
                 ], [
-                    'price' => 0,
+                    'price' => $price,
                     'stock_quantity' => 10,
                     'low_stock_threshold' => 2,
                     'is_active' => true,
@@ -101,13 +160,13 @@ class ProductCatalogSeeder extends Seeder
         }
 
         $settings = [
-            'site_url' => 'https://bedsheets.ptree.lk',
-            'store_name' => 'Priyanthi Multi Stores',
+            'site_url' => 'https://randalu-pc.lk',
+            'store_name' => 'Randalu PC',
             'store_phone' => '+94776474542',
             'whatsapp_number' => '94776474542',
-            'store_address' => 'Priyanthi Multi Stores, Katunayake, Sri Lanka',
-            'google_maps_embed_url' => 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3958.770553911933!2d79.87817187499869!3d7.1525068928518865!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae2f11dde391c3b%3A0x18d0e58c6ffb9ba3!2sPriyanthi%20Multi%20Stores!5e0!3m2!1sen!2slk!4v1778339907048!5m2!1sen!2slk',
-            'admin_email' => env('ADMIN_EMAIL', 'admin@bedsheets.ptree.lk'),
+            'store_address' => 'Randalu PC, Sri Lanka',
+            'google_maps_embed_url' => '',
+            'admin_email' => env('ADMIN_EMAIL', 'admin@randalu-pc.lk'),
             'currency' => 'LKR',
         ];
 

@@ -58,6 +58,8 @@ class OrderStatusService
                     $data['total'] = (float) $order->subtotal + (float) $data['delivery_fee'];
                 }
 
+                $this->restockIfCancelling($order, $previousStatus, $nextStatus, $userId);
+
                 $order->update($data);
 
                 return [
@@ -107,6 +109,60 @@ class OrderStatusService
         }
 
         return $updatedOrder;
+    }
+
+    /**
+     * When an order that already deducted stock (i.e. it was confirmed) is
+     * cancelled, return the reserved stock and record the movement.
+     */
+    private function restockIfCancelling(Order $order, string $previousStatus, string $nextStatus, ?int $userId): void
+    {
+        $cancelling = $nextStatus === 'cancelled'
+            && $previousStatus !== 'cancelled'
+            && $order->confirmed_at !== null;
+
+        if (! $cancelling) {
+            return;
+        }
+
+        foreach ($order->items()->get() as $item) {
+            if ($item->product_variant_id === null) {
+                continue;
+            }
+
+            $variant = $item->variant()->lockForUpdate()->first();
+
+            if (! $variant) {
+                app(EventLogger::class)->record(
+                    type: 'inventory.restock_skipped',
+                    summary: "Could not restock {$item->sku} on cancellation — variant is missing",
+                    severity: 'warning',
+                    subject: $order,
+                    order: $order,
+                    userId: $userId,
+                    customerPhone: $order->customer_phone,
+                    metadata: [
+                        'product_variant_id' => $item->product_variant_id,
+                        'quantity' => $item->quantity,
+                    ],
+                );
+
+                continue;
+            }
+
+            $variant->increment('stock_quantity', $item->quantity);
+            $variant->refresh();
+
+            InventoryMovement::query()->create([
+                'product_variant_id' => $variant->id,
+                'order_id' => $order->id,
+                'quantity_change' => $item->quantity,
+                'stock_after' => $variant->stock_quantity,
+                'reason' => 'order_cancelled',
+                'note' => "Order {$order->order_number}",
+                'user_id' => $userId,
+            ]);
+        }
     }
 
     /**

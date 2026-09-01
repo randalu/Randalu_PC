@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Settings\Pages;
 
 use App\Filament\Resources\Settings\SettingResource;
 use App\Models\Setting;
+use App\Services\SmsService;
 use App\Services\SmsTestService;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -20,6 +21,27 @@ class ListSettings extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('checkSmsBalance')
+                ->label('Check SMS balance')
+                ->icon(Heroicon::OutlinedWallet)
+                ->color('gray')
+                ->action(function (): void {
+                    try {
+                        $status = app(SmsService::class)->accountStatus();
+
+                        Notification::make()
+                            ->title('SMSlenz account: '.($status['status'] ?? 'unknown'))
+                            ->body('Balance: '.($status['sms_credit_balance'] ?? 'n/a').' — Plan: '.($status['active_plan'] ?? 'n/a'))
+                            ->success()
+                            ->send();
+                    } catch (\Throwable $exception) {
+                        Notification::make()
+                            ->danger()
+                            ->title('SMS balance check failed')
+                            ->body($exception->getMessage())
+                            ->send();
+                    }
+                }),
             Action::make('sendTestSms')
                 ->label('Send test SMS')
                 ->icon(Heroicon::OutlinedPaperAirplane)
@@ -32,7 +54,7 @@ class ListSettings extends ListRecords
                         ->required()
                         ->maxLength(40),
                     Textarea::make('message')
-                        ->default('PMS SMS test: order status messages are configured.')
+                        ->default('Randalu PC SMS test: order status messages are configured.')
                         ->required()
                         ->maxLength(621)
                         ->rows(3),

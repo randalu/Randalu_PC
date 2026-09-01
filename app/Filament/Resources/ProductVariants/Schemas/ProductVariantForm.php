@@ -29,13 +29,11 @@ class ProductVariantForm
                             ->minValue(0)
                             ->default(0)
                             ->prefix('LKR'),
-                        Select::make('size')
-                            ->options([
-                                '90 x 90' => '90 x 90',
-                                '90 x 100' => '90 x 100',
-                            ])
+                        TextInput::make('size')
+                            ->label('Variant / Spec')
                             ->required()
-                            ->native(false),
+                            ->maxLength(255)
+                            ->helperText('The specific model or configuration for this product (e.g. Intel i7 / 16GB / 1TB SSD).'),
                         TextInput::make('color')
                             ->required()
                             ->maxLength(100)

@@ -1,27 +1,53 @@
 @extends('layouts.storefront')
 
-@section('title', $product->sku.' - '.$product->name.' | Priyanthi Multi Stores')
+@section('title', $product->sku.' - '.$product->name.' | Randalu PC')
 @section('description', $product->seo_description)
 
 @section('content')
-@php $message = urlencode("Hello Priyanthi Multi Stores, I'm interested in {$product->sku} - {$product->name}. Please share details for size 90 x 90 / 90 x 100."); @endphp
+@php $message = urlencode("Hello Randalu PC, I'm interested in {$product->sku} - {$product->name}. Please share availability and pricing."); @endphp
 <section class="section">
     <div class="container split">
-        <div class="hero-image"><img src="{{ asset($product->image_path ?: 'images/logo.webp') }}" alt="{{ $product->sku }} {{ $product->name }}"></div>
+        <div class="hero-image"><img src="{{ asset($product->image_path ?: 'images/product-placeholder.png') }}" alt="{{ $product->sku }} {{ $product->name }}"></div>
         <div>
             <span class="sku">{{ $product->sku }}</span>
             <h1>{{ $product->name }}</h1>
             <p class="muted">{{ $product->category->name }}</p>
             <p>{{ $product->seo_description }}</p>
-            <p class="included-note">Matching pillow cases (2 pcs) are free with every set.</p>
+            <p class="included-note">Genuine hardware with warranty support.</p>
+
+            <div class="table-wrap spec-table">
+                <table class="table">
+                    <thead><tr><th>Variant / Spec</th><th>Price</th><th>Stock</th></tr></thead>
+                    <tbody>
+                        @foreach ($product->activeVariants as $variant)
+                            <tr>
+                                <td>{{ $variant->size }}</td>
+                                <td>LKR {{ number_format((float) $variant->price, 2) }}</td>
+                                <td>
+                                    @if ($variant->stock_quantity > 0)
+                                        {{ $variant->stock_quantity }}
+                                    @else
+                                        <span class="badge bad">Out of stock</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
             <form method="post" action="{{ route('cart.add') }}">
                 @csrf
                 <div class="field">
-                    <label for="variant_id">Select size</label>
+                    <label for="variant_id">Select variant</label>
                     <select id="variant_id" name="variant_id" required>
-                        <option value="" selected disabled>Select size</option>
+                        <option value="" selected disabled>Select variant</option>
                         @foreach ($product->activeVariants as $variant)
-                            <option value="{{ $variant->id }}">{{ $variant->size }} | Stock {{ $variant->stock_quantity }} | LKR {{ number_format((float) $variant->price, 2) }}</option>
+                            @if ($variant->stock_quantity > 0)
+                                <option value="{{ $variant->id }}">{{ $variant->size }} | Stock {{ $variant->stock_quantity }} | LKR {{ number_format((float) $variant->price, 2) }}</option>
+                            @else
+                                <option value="{{ $variant->id }}" disabled>{{ $variant->size }} (out of stock)</option>
+                            @endif
                         @endforeach
                     </select>
                 </div>

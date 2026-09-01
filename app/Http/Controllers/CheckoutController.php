@@ -2,33 +2,49 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Concerns\InteractsWithCart;
 use App\Models\Order;
 use App\Models\ProductVariant;
 use App\Models\Setting;
+use App\Services\CartService;
 use App\Services\EventLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class CheckoutController extends Controller
 {
-    public function show(): View
+    use InteractsWithCart;
+
+    public function __construct(private readonly CartService $cart) {}
+
+    public function show(Request $request): View
     {
-        $cart = $this->cartItems();
+        $cart = $this->cart->items($this->cartCustomerId(), $this->cartToken($request));
         abort_if($cart['items']->isEmpty(), 404);
 
-        return view('storefront.checkout', ['cart' => $cart]);
+        $deliveryFee = $this->deliveryFee();
+
+        return view('storefront.checkout', [
+            'cart' => $cart,
+            'delivery_fee' => $deliveryFee,
+            'delivery_fee_note' => Setting::getValue('delivery_fee_note', 'Delivery fee is confirmed by our team before dispatch.'),
+            'total' => $cart['subtotal'] + $deliveryFee,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $cart = $this->cartItems();
+        $cart = $this->cart->items($this->cartCustomerId(), $this->cartToken($request));
         if ($cart['items']->isEmpty()) {
             return redirect()->route('cart.show')->withErrors('Your cart is empty.');
         }
+
+        $deliveryFee = $this->deliveryFee();
 
         $data = $request->validate([
             'customer_name' => ['required', 'string', 'max:120'],
@@ -38,16 +54,40 @@ class CheckoutController extends Controller
             'customer_notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $order = DB::transaction(function () use ($cart, $data): Order {
+        $order = DB::transaction(function () use ($cart, $data, $deliveryFee): Order {
             $order = Order::query()->create([
                 ...$data,
                 'order_number' => $this->orderNumber(),
+                'customer_id' => $this->cartCustomerId(),
                 'subtotal' => $cart['subtotal'],
-                'total' => $cart['subtotal'],
+                'delivery_fee' => $deliveryFee,
+                'total' => $cart['subtotal'] + $deliveryFee,
             ]);
 
+            $subtotal = 0;
+
             foreach ($cart['items'] as $item) {
-                $variant = $item['variant'];
+                // Re-validate against the current DB state — a variant may have
+                // been deactivated or sold out after it was added to the cart.
+                $variant = ProductVariant::query()
+                    ->with('product.category')
+                    ->find($item['variant']->id);
+
+                if (! $variant
+                    || ! $variant->is_active
+                    || ! $variant->product?->is_active
+                    || ! $variant->product?->category?->is_active
+                    || $variant->stock_quantity < $item['quantity']) {
+                    $sku = $variant?->product?->sku ?? $item['variant']->product?->sku ?? 'Item';
+
+                    throw ValidationException::withMessages([
+                        'cart' => "{$sku} is no longer available in the requested quantity. Please update your cart and try again.",
+                    ]);
+                }
+
+                $lineTotal = $item['quantity'] * (float) $variant->price;
+                $subtotal += $lineTotal;
+
                 $order->items()->create([
                     'product_id' => $variant->product_id,
                     'product_variant_id' => $variant->id,
@@ -57,11 +97,14 @@ class CheckoutController extends Controller
                     'color' => $variant->color,
                     'quantity' => $item['quantity'],
                     'unit_price' => $variant->price,
-                    'line_total' => $item['line_total'],
+                    'line_total' => $lineTotal,
                 ]);
             }
 
-            return $order;
+            // Reflect current prices (they may have changed since the cart loaded).
+            $order->update(['subtotal' => $subtotal, 'delivery_fee' => $deliveryFee, 'total' => $subtotal + $deliveryFee]);
+
+            return $order->refresh();
         });
 
         app(EventLogger::class)->record(
@@ -77,7 +120,7 @@ class CheckoutController extends Controller
             ],
         );
 
-        session()->forget('cart');
+        $this->cart->clear($this->cartCustomerId(), $this->cartToken($request));
         $this->sendOrderEmail($order->load('items'));
 
         return redirect()->route('checkout.success', $order)->with('status', 'Order received.');
@@ -88,27 +131,15 @@ class CheckoutController extends Controller
         return view('storefront.success', ['order' => $order->load('items')]);
     }
 
-    private function cartItems(): array
+    private function deliveryFee(): float
     {
-        $cart = session('cart', []);
-        if ($cart === []) {
-            return ['items' => collect(), 'subtotal' => 0];
-        }
-
-        $variants = ProductVariant::query()->with('product.category')->whereIn('id', array_keys($cart))->get();
-        $items = $variants->map(function (ProductVariant $variant) use ($cart) {
-            $quantity = (int) $cart[$variant->id];
-
-            return ['variant' => $variant, 'quantity' => $quantity, 'line_total' => $quantity * (float) $variant->price];
-        });
-
-        return ['items' => $items, 'subtotal' => $items->sum('line_total')];
+        return (float) Setting::getValue('delivery_fee', '0');
     }
 
     private function orderNumber(): string
     {
         do {
-            $number = 'PMS-'.now()->format('Ymd').'-'.str_pad((string) random_int(1, 9999), 4, '0', STR_PAD_LEFT);
+            $number = 'RPC-'.now()->format('Ymd').'-'.str_pad((string) random_int(1, 9999), 4, '0', STR_PAD_LEFT);
         } while (Order::query()->where('order_number', $number)->exists());
 
         return $number;
@@ -122,7 +153,7 @@ class CheckoutController extends Controller
         }
 
         try {
-            Mail::raw("New PMS order {$order->order_number}\nCustomer: {$order->customer_name}\nPhone: {$order->customer_phone}\nTotal: {$order->total}", function ($message) use ($to, $order): void {
+            Mail::raw("New Randalu PC order {$order->order_number}\nCustomer: {$order->customer_name}\nPhone: {$order->customer_phone}\nTotal: {$order->total}", function ($message) use ($to, $order): void {
                 $message->to($to)->subject("New order {$order->order_number}");
             });
         } catch (\Throwable $exception) {
