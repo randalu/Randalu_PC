@@ -32,7 +32,7 @@ class ListSettings extends ListRecords
                         ->required()
                         ->maxLength(40),
                     Textarea::make('message')
-                        ->default('PMS SMS test: order status messages are configured.')
+                        ->default('Randalu PC SMS test: order status messages are configured.')
                         ->required()
                         ->maxLength(621)
                         ->rows(3),

@@ -3,17 +3,17 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', 'Bedsheets & Pillowcases in Sri Lanka | Priyanthi Multi Stores')</title>
-    <meta name="description" content="@yield('description', 'Order locally tailored bedsheet sets from Priyanthi Multi Stores in Sri Lanka.')">
-    <link rel="icon" href="{{ asset('images/logo.webp') }}">
+    <title>@yield('title', 'Computer Hardware & Parts in Sri Lanka | Randalu PC')</title>
+    <meta name="description" content="@yield('description', 'Shop computer hardware and parts in Sri Lanka at Randalu PC.')">
+    <link rel="icon" href="{{ asset('images/logo.png') }}">
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
 </head>
 <body>
 <header class="site-header">
     <div class="container nav">
         <a class="brand" href="{{ route('home') }}">
-            <img src="{{ asset('images/logo.webp') }}" alt="Priyanthi Multi Stores logo">
-            <span>Priyanthi Multi Stores</span>
+            <img src="{{ asset('images/logo.png') }}" alt="Randalu PC logo">
+            <span>Randalu PC</span>
         </a>
         <nav class="nav-links">
             <a href="{{ route('home') }}">Products</a>
@@ -32,8 +32,8 @@
 <footer class="footer">
     <div class="container footer-grid">
         <div>
-            <strong>{{ $settings['store_name'] ?? 'Priyanthi Multi Stores' }}</strong>
-            <span>Bedsheet sets with 2 matching pillowcases included.</span>
+            <strong>{{ $settings['store_name'] ?? 'Randalu PC' }}</strong>
+            <span>Genuine computer hardware and parts in Sri Lanka.</span>
         </div>
         <div>
             <a href="tel:{{ $settings['store_phone'] ?? '+94776474542' }}">{{ $settings['store_phone'] ?? '+94776474542' }}</a>

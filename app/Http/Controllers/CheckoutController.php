@@ -108,7 +108,7 @@ class CheckoutController extends Controller
     private function orderNumber(): string
     {
         do {
-            $number = 'PMS-'.now()->format('Ymd').'-'.str_pad((string) random_int(1, 9999), 4, '0', STR_PAD_LEFT);
+            $number = 'RPC-'.now()->format('Ymd').'-'.str_pad((string) random_int(1, 9999), 4, '0', STR_PAD_LEFT);
         } while (Order::query()->where('order_number', $number)->exists());
 
         return $number;
@@ -122,7 +122,7 @@ class CheckoutController extends Controller
         }
 
         try {
-            Mail::raw("New PMS order {$order->order_number}\nCustomer: {$order->customer_name}\nPhone: {$order->customer_phone}\nTotal: {$order->total}", function ($message) use ($to, $order): void {
+            Mail::raw("New Randalu PC order {$order->order_number}\nCustomer: {$order->customer_name}\nPhone: {$order->customer_phone}\nTotal: {$order->total}", function ($message) use ($to, $order): void {
                 $message->to($to)->subject("New order {$order->order_number}");
             });
         } catch (\Throwable $exception) {

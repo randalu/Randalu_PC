@@ -20,7 +20,7 @@
         <aside class="card"><div class="card-body">
             <h2>Order Summary</h2>
             @foreach ($cart['items'] as $item)
-                <p>{{ $item['quantity'] }} x {{ $item['variant']->product->sku }} {{ $item['variant']->size }} - LKR {{ number_format($item['line_total'], 2) }}<br><span class="muted">2 matching pillow cases included</span></p>
+                <p>{{ $item['quantity'] }} x {{ $item['variant']->product->sku }} {{ $item['variant']->size }} - LKR {{ number_format($item['line_total'], 2) }}</p>
             @endforeach
             <h3>Subtotal: LKR {{ number_format($cart['subtotal'], 2) }}</h3>
             <p class="muted">Delivery fee is confirmed by admin.</p>

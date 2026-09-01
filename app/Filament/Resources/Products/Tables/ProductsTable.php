@@ -29,7 +29,7 @@ class ProductsTable
                     ->searchable(),
                 ImageColumn::make('image_path')
                     ->label('Image')
-                    ->getStateUsing(fn (Product $record): string => asset($record->image_path ?: 'images/logo.webp'))
+                    ->getStateUsing(fn (Product $record): string => asset($record->image_path ?: 'images/product-placeholder.png'))
                     ->square(),
                 TextColumn::make('variants_count')
                     ->counts('variants')

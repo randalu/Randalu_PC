@@ -38,7 +38,7 @@ class OrderOtpService
         Cache::put($this->cacheKey($normalized), Hash::make($otp), now()->addMinutes(self::TTL_MINUTES));
 
         $this->sms->send($normalized, strtr(
-            Setting::getValue('sms_otp_template', 'Your PMS order status OTP is {otp}. It expires in 10 minutes.'),
+            Setting::getValue('sms_otp_template', 'Your Randalu PC order status OTP is {otp}. It expires in 10 minutes.'),
             ['{otp}' => $otp],
         ));
 

@@ -15,7 +15,7 @@
                     @foreach ($cart['items'] as $item)
                         <tr>
                             <td>{{ $item['variant']->product->sku }} - {{ $item['variant']->product->name }}</td>
-                            <td>{{ $item['variant']->size }}<br><span class="muted">2 matching pillow cases included</span></td>
+                            <td>{{ $item['variant']->size }}</td>
                             <td>
                                 <form method="post" action="{{ route('cart.update', $item['variant']) }}">@csrf @method('PATCH')
                                     <input name="quantity" type="number" min="1" value="{{ $item['quantity'] }}" style="width:80px">

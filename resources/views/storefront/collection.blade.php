@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', $category->name.' Bedsheets | Priyanthi Multi Stores')
+@section('title', $category->name.' | Randalu PC')
 @section('description', $category->description)
 
 @section('content')

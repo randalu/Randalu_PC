@@ -30,39 +30,36 @@ class ExampleTest extends TestCase
         $response = $this->get('/');
 
         $response->assertOk()
-            ->assertSee('Order bedsheet sets')
-            ->assertSee('EC-NEM-01');
+            ->assertSee('Shop computer hardware')
+            ->assertSee('RPC-LAP-01');
     }
 
-    public function test_seeded_products_have_only_two_active_bedsheet_sizes(): void
+    public function test_seeded_products_have_active_variants(): void
     {
         $this->seed();
 
-        $variantSizes = ProductVariant::query()
+        $variants = ProductVariant::query()
             ->where('is_active', true)
             ->orderBy('product_id')
-            ->orderByRaw("CASE size WHEN '90 x 90' THEN 1 WHEN '90 x 100' THEN 2 ELSE 99 END")
-            ->select('product_id', 'size')
-            ->get()
-            ->groupBy('product_id')
-            ->map(fn ($variants) => $variants->pluck('size')->values()->all());
+            ->get();
 
-        $this->assertNotEmpty($variantSizes);
+        $this->assertNotEmpty($variants);
 
-        foreach ($variantSizes as $sizes) {
-            $this->assertSame(['90 x 90', '90 x 100'], $sizes);
+        foreach ($variants as $variant) {
+            $this->assertNotSame('', trim($variant->size));
+            $this->assertGreaterThan(0, (float) $variant->price);
         }
     }
 
-    public function test_product_size_selection_defaults_to_select_size(): void
+    public function test_product_variant_selection_defaults_to_select_variant(): void
     {
         $this->seed();
         $product = ProductVariant::query()->firstOrFail()->product;
 
         $this->get(route('products.show', $product))
             ->assertOk()
-            ->assertSee('Select size')
-            ->assertSee('Matching pillow cases (2 pcs) are free with every set.');
+            ->assertSee('Select variant')
+            ->assertSee('Genuine hardware with warranty support.');
     }
 
     public function test_customer_can_place_online_order(): void
@@ -376,11 +373,11 @@ class ExampleTest extends TestCase
 
         $admin = User::query()->firstOrFail();
 
-        $sent = app(SmsTestService::class)->send('0771234567', 'PMS SMS test message.', $admin->id);
+        $sent = app(SmsTestService::class)->send('0771234567', 'Randalu PC SMS test message.', $admin->id);
 
         $this->assertTrue($sent);
         Http::assertSent(fn (Request $request): bool => $request['contact'] === '+94771234567'
-            && $request['message'] === 'PMS SMS test message.');
+            && $request['message'] === 'Randalu PC SMS test message.');
         $this->assertDatabaseHas('event_logs', [
             'type' => 'sms.test_sent',
             'severity' => 'success',

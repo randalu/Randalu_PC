@@ -33,8 +33,8 @@ class AdminPanelProvider extends PanelProvider
                 AppAuthentication::make()
                     ->recoverable(),
             ], isRequired: true)
-            ->brandName('Bedsheets Admin')
-            ->brandLogo(asset('images/logo.webp'))
+            ->brandName('Randalu PC Admin')
+            ->brandLogo(asset('images/logo.png'))
             ->favicon(asset('favicon.png'))
             ->colors([
                 'primary' => Color::Indigo,

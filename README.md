@@ -1,6 +1,6 @@
-# Priyanthi Multi Stores Ordering Platform
+# Randalu PC Ordering Platform
 
-Laravel/MySQL ordering platform for bedsheet sets, collections, inventory, and admin order handling.
+Laravel/MySQL ordering platform for computer hardware & parts: catalog, collections, inventory, and admin order handling.
 
 ## Local setup
 
@@ -14,7 +14,7 @@ php artisan serve
 
 Default seeded admin:
 
-- Email: `admin@bedsheets.ptree.lk`
+- Email: `admin@randalu-pc.lk`
 - Password: `ChangeMeNow!2026`
 
 Change these with `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env` before production seeding.
