@@ -29,6 +29,9 @@ Change these with `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env` before production
 - Run a queue worker so order-status SMS messages send out-of-band:
   `php artisan queue:work --tries=3` (supervise it with Supervisor/systemd in
   production; `QUEUE_CONNECTION=database`). Failed jobs land in `failed_jobs`.
+- Schedule the cron entry so scheduled tasks run (event-log pruning):
+  `* * * * * cd /path/to/app && php artisan schedule:run >> /dev/null 2>&1`.
+  Set `event_log_retention_days` in admin Settings to change the 30-day default.
 
 ## SMS & customer accounts
 
