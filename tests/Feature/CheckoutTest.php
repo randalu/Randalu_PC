@@ -73,12 +73,15 @@ class CheckoutTest extends FeatureTestCase
         $variant = ProductVariant::query()->firstOrFail();
 
         $this->post('/cart', ['variant_id' => $variant->id, 'quantity' => 1])->assertRedirect('/cart');
+        $token = CartItem::query()->value('cart_token');
 
-        $this->post('/checkout', [
+        $checkoutData = [
             'customer_name' => 'Landline Customer',
             'customer_phone' => '0112345678',
             'delivery_address' => 'Colombo',
-        ])->assertSessionHasErrors('customer_phone');
+        ];
+        $response = $token ? $this->withCookie('cart_token', $token)->post('/checkout', $checkoutData) : $this->post('/checkout', $checkoutData);
+        $response->assertSessionHasErrors('customer_phone');
 
         $this->assertDatabaseMissing('orders', ['customer_name' => 'Landline Customer']);
     }
