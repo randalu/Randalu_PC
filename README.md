@@ -12,12 +12,19 @@ php artisan migrate:fresh --seed
 php artisan serve
 ```
 
-Default seeded admin:
+Default seeded admin (**local development only**):
 
 - Email: `admin@randalu-pc.lk`
-- Password: `ChangeMeNow!2026`
+- Password: `ChangeMeNow!2026` — a placeholder; never use it in production.
 
-Change these with `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env` before production seeding.
+Configure `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `.env` before deploying. The seeder
+refuses to run with the placeholder password in production, and re-seeding never
+overwrites an existing admin's password. To provision (or reset) an admin
+explicitly:
+
+```bash
+php artisan admin:create --email=admin@randalu-pc.lk --name="Randalu PC Admin" --password="<strong-password>"
+```
 
 ## Production notes
 
@@ -32,6 +39,7 @@ Change these with `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env` before production
 - Schedule the cron entry so scheduled tasks run (event-log pruning):
   `* * * * * cd /path/to/app && php artisan schedule:run >> /dev/null 2>&1`.
   Set `event_log_retention_days` in admin Settings to change the 30-day default.
+- If behind CyberPanel/Cloudflare, set `TRUSTED_PROXIES=*` (or comma list of proxy IPs) in `.env` so OTP rate limits and logs see the real client IP; leave empty when not behind a proxy.
 
 ## SMS & customer accounts
 

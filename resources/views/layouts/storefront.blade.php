@@ -6,6 +6,7 @@
     <title>@yield('title', 'Computer Hardware & Parts in Sri Lanka | Randalu PC')</title>
     <meta name="description" content="@yield('description', 'Shop computer hardware and parts in Sri Lanka at Randalu PC.')">
     <link rel="icon" href="{{ asset('images/logo.png') }}">
+    <script>(()=>{try{const t=localStorage.getItem('theme');const s=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.setAttribute('data-theme',t||s)}catch(e){}})();</script>
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
 </head>
 <body>
@@ -29,6 +30,7 @@
                 <a href="{{ route('customer.login') }}">Sign in</a>
             @endif
             <a class="btn green" href="https://wa.me/{{ $settings['whatsapp_number'] ?? '94776474542' }}">WhatsApp</a>
+            <button type="button" id="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark">◐</button>
         </nav>
     </div>
 </header>
@@ -49,5 +51,24 @@
         </div>
     </div>
 </footer>
+<script>
+(function(){
+  const btn=document.getElementById('theme-toggle');
+  if(!btn) return;
+  const updateIcon=()=>{
+    const t=document.documentElement.getAttribute('data-theme');
+    btn.textContent=t==='light'?'◑':'◐';
+    btn.setAttribute('aria-label','Switch to '+(t==='light'?'dark':'light')+' theme');
+  };
+  updateIcon();
+  btn.addEventListener('click',()=>{
+    const cur=document.documentElement.getAttribute('data-theme');
+    const next=cur==='light'?'dark':'light';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('theme',next);document.cookie='theme='+next+';path=/;max-age=31536000'}catch(e){}
+    updateIcon();
+  });
+})();
+</script>
 </body>
 </html>

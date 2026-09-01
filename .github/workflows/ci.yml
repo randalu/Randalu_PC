@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: ['main', 'arena/**']
+  pull_request:
+
+jobs:
+  tests:
+    name: PHP 8.3 — tests & style
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, dom, fileinfo, pdo, sqlite
+          coverage: none
+
+      - name: Copy environment file
+        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+
+      - name: Install dependencies
+        run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+
+      - name: Create database
+        run: |
+          mkdir -p database
+          touch database/database.sqlite
+
+      - name: Run migrations (sqlite)
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+        run: php artisan migrate --force
+
+      - name: Run tests
+        run: php artisan test
+
+      - name: Check code style
+        run: vendor/bin/pint --test

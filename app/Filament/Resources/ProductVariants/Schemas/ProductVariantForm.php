@@ -54,7 +54,6 @@ class ProductVariantForm
                         Textarea::make('adjustment_note')
                             ->label('Stock adjustment note')
                             ->rows(3)
-                            ->dehydrated(false)
                             ->helperText('Saved only when stock quantity changes.')
                             ->columnSpanFull(),
                     ]),
