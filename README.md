@@ -26,6 +26,9 @@ Change these with `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env` before production
 - Run `php artisan storage:link` for uploaded product images.
 - Configure SMTP in `.env` for new-order email alerts.
 - Use `php artisan migrate --seed --force` after deployment.
+- Run a queue worker so order-status SMS messages send out-of-band:
+  `php artisan queue:work --tries=3` (supervise it with Supervisor/systemd in
+  production; `QUEUE_CONNECTION=database`). Failed jobs land in `failed_jobs`.
 
 ## SMS & customer accounts
 
@@ -34,4 +37,9 @@ Change these with `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env` before production
   sender ID for testing. Toggle `sms_enabled` (1/0) in admin Settings.
 - Customers sign in / register on the storefront with a phone number + SMS OTP
   (no password). Admins can check the SMS credit balance from Settings.
+- Order-status SMS is queued (`App\Jobs\SendSms`); OTP SMS stays synchronous so a
+  10-minute code arrives immediately. Queued retries can occasionally duplicate a
+  status SMS, which is accepted for order notifications.
+- Admins can review customer accounts and their orders in the admin panel
+  (Customers resource, read-only).
 

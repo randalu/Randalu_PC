@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\Customers\CustomerResource;
 use App\Filament\Resources\Orders\OrderResource;
 use App\Filament\Resources\ProductVariants\ProductVariantResource;
 use App\Filament\Resources\Settings\SettingResource;
+use App\Jobs\SendSms;
 use App\Models\CartItem;
 use App\Models\Category;
 use App\Models\Customer;
@@ -23,6 +25,7 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -863,5 +866,107 @@ class ExampleTest extends TestCase
         ]);
 
         return $product;
+    }
+
+    public function test_customer_login_otp_verification_is_rate_limited(): void
+    {
+        $this->seed();
+        $this->enableSms();
+        Http::fake(['*' => Http::response(['success' => true, 'message' => 'SMS sent successfully'])]);
+
+        RateLimiter::clear('customer-otp-verify-phone:+94771234567');
+        RateLimiter::clear('customer-otp-verify-ip:127.0.0.1');
+
+        Customer::query()->create(['phone' => '+94771234567', 'name' => 'Verify Limited Customer']);
+
+        $this->post(route('customer.login.request-otp'), ['phone' => '0771234567'])->assertRedirect();
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->post(route('customer.login.verify'), ['phone' => '0771234567', 'otp' => '000000'])
+                ->assertSessionHasErrors('otp');
+        }
+
+        $this->post(route('customer.login.verify'), ['phone' => '0771234567', 'otp' => '000000'])
+            ->assertSessionHasErrors('otp');
+
+        $this->assertDatabaseHas('event_logs', [
+            'type' => 'customer.otp_verify_rate_limited',
+            'severity' => 'warning',
+            'customer_phone' => '+94771234567',
+        ]);
+    }
+
+    public function test_sms_sent_event_records_campaign_and_pages(): void
+    {
+        $this->seed();
+        $this->enableSms();
+        Http::fake(['*' => Http::response([
+            'success' => true,
+            'message' => 'SMS sent successfully',
+            'data' => [
+                'campaign_id' => 'CMP-12345',
+                'pages' => 2,
+                'sms_credit_balance' => 250,
+            ],
+        ])]);
+
+        $sent = app(SmsService::class)->send('0771234567', 'Hello Randalu PC');
+
+        $this->assertTrue($sent);
+
+        $event = EventLog::query()->where('type', 'sms.sent')->latest()->firstOrFail();
+        $this->assertSame('CMP-12345', $event->metadata['campaign_id']);
+        $this->assertSame(2, $event->metadata['pages']);
+        $this->assertSame(250, $event->metadata['balance']);
+    }
+
+    public function test_sms_job_sends_message(): void
+    {
+        $this->seed();
+        $this->enableSms();
+        Http::fake(['*' => Http::response(['success' => true, 'message' => 'SMS sent successfully'])]);
+
+        SendSms::dispatch('0771234567', 'Queued status update');
+
+        Http::assertSent(fn (Request $request): bool => $request['contact'] === '+94771234567'
+            && $request['message'] === 'Queued status update');
+
+        $this->assertDatabaseHas('event_logs', [
+            'type' => 'sms.sent',
+            'customer_phone' => '+94771234567',
+        ]);
+    }
+
+    public function test_order_status_sms_is_dispatched_as_a_job(): void
+    {
+        $this->seed();
+        $this->enableSms();
+        Queue::fake();
+
+        $admin = User::query()->firstOrFail();
+        $order = $this->placeOrder('Queued SMS', '0771234567');
+
+        app(OrderStatusService::class)->update($order, ['status' => 'confirmed'], $admin->id);
+
+        Queue::assertPushed(SendSms::class, fn (SendSms $job): bool =>
+            $job->phone === '+94771234567'
+            && str_contains($job->message, $order->order_number));
+    }
+
+    public function test_customer_resource_is_read_only_and_gated(): void
+    {
+        $this->seed();
+        $admin = User::query()->firstOrFail();
+        $staff = User::factory()->create(['role' => User::ROLE_STAFF]);
+        $customer = Customer::query()->create(['phone' => '+94771234567', 'name' => 'Gate Customer']);
+
+        $this->actingAs($admin);
+        $this->assertTrue(CustomerResource::canViewAny());
+        $this->assertFalse(CustomerResource::canCreate());
+        $this->assertFalse(CustomerResource::canEdit($customer));
+        $this->assertFalse(CustomerResource::canDelete($customer));
+
+        $this->actingAs($staff);
+        $this->assertFalse(CustomerResource::canViewAny());
     }
 }

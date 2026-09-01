@@ -92,6 +92,8 @@ class SmsService
             metadata: [
                 'status' => $response->status(),
                 'sender_id' => $senderId,
+                'campaign_id' => $response->json('data.campaign_id'),
+                'pages' => $response->json('data.pages'),
                 'balance' => $response->json('data.sms_credit_balance'),
             ],
         );
