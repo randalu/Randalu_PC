@@ -16,32 +16,26 @@ class StorefrontController extends Controller
 {
     public function index(Request $request): View
     {
-        $categories = Cache::rememberForever(CatalogCache::CATEGORIES_KEY, function (): Collection {
-            return Category::query()->where('is_active', true)->orderBy('sort_order')->get();
-        });
+        $categories = $this->cachedCategories();
 
         $search = trim((string) $request->query('s'));
 
-        $products = Cache::remember(
-            CatalogCache::productsKey($search, null),
-            now()->addMinutes(CatalogCache::PRODUCT_TTL_MINUTES),
-            function () use ($search): Collection {
-                $query = Product::query()
-                    ->with(['category', 'activeVariants'])
-                    ->where('is_active', true)
-                    ->whereHas('category', fn ($query) => $query->where('is_active', true));
+        $products = $this->cachedProducts($search, null, function () use ($search): Collection {
+            $query = Product::query()
+                ->with(['category', 'activeVariants'])
+                ->where('is_active', true)
+                ->whereHas('category', fn ($query) => $query->where('is_active', true));
 
-                if ($search !== '') {
-                    $query->where(function ($query) use ($search): void {
-                        $query->where('name', 'like', "%{$search}%")
-                            ->orWhere('sku', 'like', "%{$search}%")
-                            ->orWhereHas('category', fn ($category) => $category->where('name', 'like', "%{$search}%"));
-                    });
-                }
+            if ($search !== '') {
+                $query->where(function ($query) use ($search): void {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('sku', 'like', "%{$search}%")
+                        ->orWhereHas('category', fn ($category) => $category->where('name', 'like', "%{$search}%"));
+                });
+            }
 
-                return $query->orderBy('sort_order')->get();
-            },
-        );
+            return $query->orderBy('sort_order')->get();
+        });
 
         return view('storefront.index', [
             'categories' => $categories,
@@ -51,15 +45,40 @@ class StorefrontController extends Controller
         ]);
     }
 
+    private function cachedCategories(): Collection
+    {
+        $value = Cache::get(CatalogCache::CATEGORIES_KEY);
+        if ($value instanceof Collection) {
+            return $value;
+        }
+        if ($value !== null) {
+            Cache::forget(CatalogCache::CATEGORIES_KEY);
+        }
+
+        return Cache::rememberForever(CatalogCache::CATEGORIES_KEY, function (): Collection {
+            return Category::query()->where('is_active', true)->orderBy('sort_order')->get();
+        });
+    }
+
+    private function cachedProducts(?string $search, ?int $categoryId, callable $callback): Collection
+    {
+        $key = CatalogCache::productsKey($search, $categoryId);
+        $value = Cache::get($key);
+        if ($value instanceof Collection) {
+            return $value;
+        }
+        if ($value !== null) {
+            Cache::forget($key);
+        }
+
+        return Cache::remember($key, now()->addMinutes(CatalogCache::PRODUCT_TTL_MINUTES), $callback);
+    }
+
     public function collection(Category $category, Request $request): View
     {
         abort_unless($category->is_active, 404);
 
-        $products = Cache::remember(
-            CatalogCache::productsKey(null, $category->id),
-            now()->addMinutes(CatalogCache::PRODUCT_TTL_MINUTES),
-            fn (): Collection => $category->products()->with('activeVariants')->where('is_active', true)->orderBy('sort_order')->get(),
-        );
+        $products = $this->cachedProducts(null, $category->id, fn (): Collection => $category->products()->with('activeVariants')->where('is_active', true)->orderBy('sort_order')->get());
 
         $paginated = $this->paginate($products, 12, $request);
         // Prevent N+1 queries when accessing $product->category in the view
@@ -69,7 +88,7 @@ class StorefrontController extends Controller
         return view('storefront.collection', [
             'category' => $category,
             'products' => $paginated,
-            'categories' => Cache::rememberForever(CatalogCache::CATEGORIES_KEY, fn (): Collection => Category::query()->where('is_active', true)->orderBy('sort_order')->get()),
+            'categories' => $this->cachedCategories(),
             'settings' => $this->settings(),
         ]);
     }
