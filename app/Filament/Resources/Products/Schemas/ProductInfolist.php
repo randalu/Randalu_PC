@@ -24,6 +24,15 @@ class ProductInfolist
                 TextEntry::make('seo_description')
                     ->placeholder('-')
                     ->columnSpanFull(),
+                TextEntry::make('description')
+                    ->placeholder('-')
+                    ->columnSpanFull(),
+                TextEntry::make('ai_model')
+                    ->label('AI Model')
+                    ->placeholder('-'),
+                TextEntry::make('description_generated_at')
+                    ->dateTime()
+                    ->placeholder('-'),
                 TextEntry::make('sort_order')
                     ->numeric(),
                 IconEntry::make('is_active')

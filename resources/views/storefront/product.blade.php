@@ -1,7 +1,7 @@
 @extends('layouts.storefront')
 
 @section('title', $product->sku.' - '.$product->name.' | Randalu PC')
-@section('description', $product->seo_description)
+@section('description', \Illuminate\Support\Str::limit($product->seo_description ?? strip_tags($product->description ?? ''), 160))
 
 @section('content')
 @php $message = urlencode("Hello Randalu PC, I'm interested in {$product->sku} - {$product->name}. Please share availability and pricing."); @endphp
@@ -12,7 +12,11 @@
             <span class="sku">{{ $product->sku }}</span>
             <h1>{{ $product->name }}</h1>
             <p class="muted">{{ $product->category->name }}</p>
-            <p>{{ $product->seo_description }}</p>
+            @if (! empty($product->description))
+                <div class="prose"><p>{{ $product->description }}</p></div>
+            @else
+                <p>{{ $product->seo_description }}</p>
+            @endif
             <p class="included-note">Genuine hardware with warranty support.</p>
 
             <div class="table-wrap spec-table">

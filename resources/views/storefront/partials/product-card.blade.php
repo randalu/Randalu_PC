@@ -11,7 +11,7 @@
     <div class="card-body">
         <span class="sku">{{ $product->sku }}</span>
         <h3><a href="{{ route('products.show', $product) }}">{{ $product->name }}</a></h3>
-        <p class="muted">{{ $product->seo_description }}</p>
+        <p class="muted">{{ \Illuminate\Support\Str::limit($product->seo_description ?? $product->description, 80) }}</p>
         <p class="included-note small">Genuine hardware with warranty support.</p>
         <p class="muted">{{ $product->category->name }}</p>
         <div class="actions">

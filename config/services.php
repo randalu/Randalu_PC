@@ -43,4 +43,15 @@ return [
         'sender_id' => env('SMSLENZ_SENDER_ID', 'SMSlenzDEMO'),
     ],
 
+    'openrouter' => [
+        'key' => env('OPENROUTER_API_KEY'),
+        'base_url' => env('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1'),
+        'model' => env('OPENROUTER_MODEL', 'google/gemma-4-26b-a4b-it:free'),
+        'fallbacks' => array_filter(array_map('trim', explode(',', (string) env('OPENROUTER_FALLBACK_MODELS', 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free,z-ai/glm-5.2:free')))),
+        'referer' => env('OPENROUTER_REFERER', env('APP_URL', 'https://randalu-pc.lk')),
+        'title' => env('OPENROUTER_TITLE', env('APP_NAME', 'Randalu PC')),
+        'enabled' => env('OPENROUTER_ENABLED', true),
+        'max_tokens' => env('OPENROUTER_MAX_TOKENS', 250),
+    ],
+
 ];

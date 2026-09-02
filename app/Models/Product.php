@@ -18,9 +18,12 @@ class Product extends Model
         'slug',
         'image_path',
         'seo_description',
+        'description',
         'specs',
         'sort_order',
         'is_active',
+        'description_generated_at',
+        'ai_model',
     ];
 
     protected function casts(): array
@@ -28,6 +31,7 @@ class Product extends Model
         return [
             'is_active' => 'boolean',
             'specs' => 'array',
+            'description_generated_at' => 'datetime',
         ];
     }
 

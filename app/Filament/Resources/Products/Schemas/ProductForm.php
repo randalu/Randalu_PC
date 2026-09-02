@@ -2,14 +2,21 @@
 
 namespace App\Filament\Resources\Products\Schemas;
 
+use App\Models\Category;
+use App\Models\Product;
+use App\Services\OpenRouterService;
+use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Log;
 
 class ProductForm
 {
@@ -55,7 +62,64 @@ class ProductForm
                             ->default(true)
                             ->required(),
                         Textarea::make('seo_description')
-                            ->rows(4)
+                            ->rows(3)
+                            ->maxLength(160)
+                            ->helperText('Meta description, max 160 chars. Use AI to generate.')
+                            ->hintAction(
+                                Action::make('generateSeoAi')
+                                    ->icon(Heroicon::OutlinedSparkles)
+                                    ->label('Generate with AI')
+                                    ->action(function ($livewire, $set, $get) {
+                                        try {
+                                            $product = $get('id') ? Product::query()->find($get('id')) : new Product([
+                                                'name' => $get('name') ?? 'Product',
+                                                'sku' => $get('sku') ?? 'SKU',
+                                                'category_id' => $get('category_id'),
+                                                'specs' => $get('specs'),
+                                            ]);
+                                            if ($product && $product->category_id) {
+                                                $product->setRelation('category', Category::query()->find($product->category_id));
+                                            }
+                                            $product->variants = collect([]);
+                                            $text = app(OpenRouterService::class)->generateProductSeo($product);
+                                            $set('seo_description', $text);
+                                            Notification::make()->success()->title('SEO description generated')->body($text)->send();
+                                        } catch (\Throwable $e) {
+                                            Log::warning('AI SEO generation failed', ['error' => $e->getMessage()]);
+                                            Notification::make()->danger()->title('AI failed')->body($e->getMessage())->send();
+                                        }
+                                    })
+                            )
+                            ->columnSpanFull(),
+                        Textarea::make('description')
+                            ->label('Long Description (AI)')
+                            ->rows(6)
+                            ->helperText('Marketing copy for product page. AI-generated, editable.')
+                            ->hintAction(
+                                Action::make('generateLongAi')
+                                    ->icon(Heroicon::OutlinedSparkles)
+                                    ->label('Generate with AI')
+                                    ->action(function ($livewire, $set, $get) {
+                                        try {
+                                            $product = $get('id') ? Product::query()->find($get('id')) : new Product([
+                                                'name' => $get('name') ?? 'Product',
+                                                'sku' => $get('sku') ?? 'SKU',
+                                                'category_id' => $get('category_id'),
+                                                'specs' => $get('specs'),
+                                            ]);
+                                            if ($product && $product->category_id) {
+                                                $product->setRelation('category', Category::query()->find($product->category_id));
+                                            }
+                                            $product->variants = collect([]);
+                                            $text = app(OpenRouterService::class)->generateProductLong($product);
+                                            $set('description', $text);
+                                            Notification::make()->success()->title('Long description generated')->send();
+                                        } catch (\Throwable $e) {
+                                            Log::warning('AI long generation failed', ['error' => $e->getMessage()]);
+                                            Notification::make()->danger()->title('AI failed')->body($e->getMessage())->send();
+                                        }
+                                    })
+                            )
                             ->columnSpanFull(),
                         KeyValue::make('specs')
                             ->label('Specifications')

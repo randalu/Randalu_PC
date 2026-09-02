@@ -2,11 +2,15 @@
 
 namespace App\Filament\Resources\Products\Tables;
 
+use App\Jobs\GenerateDescriptionJob;
 use App\Models\Product;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Notifications\Notification;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -65,6 +69,26 @@ class ProductsTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
+                    BulkAction::make('aiGenerateSeo')
+                        ->label('AI Generate SEO')
+                        ->icon(Heroicon::OutlinedSparkles)
+                        ->requiresConfirmation()
+                        ->action(function ($records) {
+                            foreach ($records as $record) {
+                                GenerateDescriptionJob::dispatch('product_seo', $record->id);
+                            }
+                            Notification::make()->success()->title('AI SEO jobs queued for '.count($records).' products')->send();
+                        }),
+                    BulkAction::make('aiGenerateLong')
+                        ->label('AI Generate Long Desc')
+                        ->icon(Heroicon::OutlinedSparkles)
+                        ->requiresConfirmation()
+                        ->action(function ($records) {
+                            foreach ($records as $record) {
+                                GenerateDescriptionJob::dispatch('product_long', $record->id);
+                            }
+                            Notification::make()->success()->title('AI long description jobs queued')->send();
+                        }),
                 ]),
             ]);
     }

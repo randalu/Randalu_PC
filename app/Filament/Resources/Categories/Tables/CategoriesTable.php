@@ -2,10 +2,14 @@
 
 namespace App\Filament\Resources\Categories\Tables;
 
+use App\Jobs\GenerateDescriptionJob;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Notifications\Notification;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
@@ -50,6 +54,16 @@ class CategoriesTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
+                    BulkAction::make('aiGenerateCategory')
+                        ->label('AI Generate Descriptions')
+                        ->icon(Heroicon::OutlinedSparkles)
+                        ->requiresConfirmation()
+                        ->action(function ($records) {
+                            foreach ($records as $record) {
+                                GenerateDescriptionJob::dispatch('category', $record->id);
+                            }
+                            Notification::make()->success()->title('AI category jobs queued for '.count($records).' categories')->send();
+                        }),
                 ]),
             ]);
     }
